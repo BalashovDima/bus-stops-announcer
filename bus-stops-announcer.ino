@@ -20,6 +20,11 @@
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+#define RX_GPS 3 // arduino rx pin for gps (gps's tx)
+#define TX_GPS 2 // arduino tx pin for gps (gps's rx)
+#define GPSBaud 9600 // Default baud of NEO-6M is 9600
+SoftwareSerial gpsSerial(RX_GPS, TX_GPS); // Create a software serial port called "gpsSerial"
+
 Button btn(BUTTON_PIN);
 
 
@@ -133,10 +138,6 @@ void setup() {
     if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
         Serial.println(F("SSD1306 allocation failed"));
     }
-    // Show initial display buffer contents on the screen --
-    // the library initializes this with an Adafruit splash screen.
-    display.display();
-    delay(2000); // Pause for 2 seconds
 
     // Clear the buffer
     display.clearDisplay();
@@ -149,8 +150,8 @@ void setup() {
     display.write("TEST");
     display.display();
 
-    Serial.println("starting playing track 0001 in folder 01...");
-    dfmp3.playFolderTrack16(1, 1); // start playing track '0001.....' in folder '01'
+    // Start the software serial port at the GPS's default baud
+    gpsSerial.begin(GPSBaud);
 }
 
 void loop() {
@@ -201,4 +202,6 @@ void loop() {
         increaseVolume = !increaseVolume;
     }
 
+    while (gpsSerial.available() > 0)
+        Serial.write(gpsSerial.read());
 }
