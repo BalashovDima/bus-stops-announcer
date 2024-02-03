@@ -26,6 +26,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define GPSBaud 9600 // Default baud of NEO-6M is 9600
 SoftwareSerial gpsSerial(RX_GPS, TX_GPS); // Create a software serial port called "gpsSerial"
 TinyGPSPlus gps;
+#define EARTH_RADIUS 6371  // Earth's radius in kilometers
 
 Button btn(BUTTON_PIN);
 
@@ -47,6 +48,7 @@ uint16_t trackNumber = 1;
 uint16_t trackCountInFolder1;
 bool secondFinishCall = false;
 bool gpsInfoBigText = false;
+uint64_t stopPassedTime = 0;
 
 // implement a notification class,
 // its member methods will get called
@@ -76,16 +78,7 @@ class Mp3Notify {
         }
 
         static void OnPlayFinished([[maybe_unused]] DfMp3 &mp3, [[maybe_unused]] DfMp3_PlaySources source, uint16_t track) {
-            if(secondFinishCall) {
-                trackNumber += 1;
-                if(trackNumber > trackCountInFolder1) trackNumber = 1;
-
-                dfmp3.playFolderTrack16(1, trackNumber);
-
-                secondFinishCall = false;
-            } else {
-                secondFinishCall = true;
-            }
+            stopPassedTime = millis();
         }
 
         static void OnPlaySourceOnline([[maybe_unused]] DfMp3 &mp3, DfMp3_PlaySources source) {
@@ -196,6 +189,28 @@ void loop() {
     while (gpsSerial.available() > 0) {
         if (gps.encode(gpsSerial.read())) {
             displayInfo();
+
+            if(millis() - stopPassedTime >= 10000) {
+                if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.233362756292046, 33.203013111690495) <= 5) { // лісового, світлофор навпроти коледжу
+                    stopPassedTime = millis();
+                    dfmp3.playFolderTrack16(2, 1);
+                } else if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.23774695200957, 33.20839631107007) <= 5) { // перехрестя на проспекті миру навпроти коня
+                    dfmp3.playFolderTrack16(2, 2);
+                    stopPassedTime = millis();
+                } else if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.239598177386306, 33.20508454830953) <= 5) { // круг біля краєзнавчого музею та екомаркета
+                    dfmp3.playFolderTrack16(2, 3);
+                    stopPassedTime = millis();
+                } else if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.24026715384555, 33.18343797286908) <= 5) { // перехрестя успенсько-троїцька клубна
+                    dfmp3.playFolderTrack16(2, 4);
+                    stopPassedTime = millis();
+                } else if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.229328194391684, 33.18545848091145) <= 5) { // нова пошта №3
+                    dfmp3.playFolderTrack16(2, 5);
+                    stopPassedTime = millis();
+                } else if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.22499374814668, 33.192970757259225) <= 5) { // перехрестя шляхопровід (вул свободи пр. миру)
+                    dfmp3.playFolderTrack16(2, 6);
+                    stopPassedTime = millis();
+                }
+            }
         }
     }
 }
@@ -251,4 +266,27 @@ void displayInfo() {
     }
 
     display.display();
+}
+
+double toRadians(double degrees) {
+    return degrees * M_PI / 180.0;
+}
+
+double calculateDistance(double latA, double lonA, double latB, double lonB) {
+    // Convert coordinates from degrees to radians
+    latA = toRadians(latA);
+    lonA = toRadians(lonA);
+    latB = toRadians(latB);
+    lonB = toRadians(lonB);
+
+    // Calculate differences between latitudes and longitudes
+    double deltaLat = latB - latA;
+    double deltaLon = lonB - lonA;
+
+    // Apply Haversine formula
+    double a = pow(sin(deltaLat / 2), 2) + cos(latA) * cos(latB) * pow(sin(deltaLon / 2), 2);
+    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    double distance = EARTH_RADIUS * c * 1000;
+
+    return distance; // in meters
 }
