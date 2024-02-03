@@ -7,6 +7,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <TinyGPS++.h>
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -24,6 +25,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define TX_GPS 2 // arduino tx pin for gps (gps's rx)
 #define GPSBaud 9600 // Default baud of NEO-6M is 9600
 SoftwareSerial gpsSerial(RX_GPS, TX_GPS); // Create a software serial port called "gpsSerial"
+TinyGPSPlus gps;
 
 Button btn(BUTTON_PIN);
 
@@ -44,6 +46,7 @@ uint16_t volume;
 uint16_t trackNumber = 1;
 uint16_t trackCountInFolder1;
 bool secondFinishCall = false;
+bool gpsInfoBigText = false;
 
 // implement a notification class,
 // its member methods will get called
@@ -159,13 +162,7 @@ void loop() {
     dfmp3.loop();
 
     if(btn.hasClicks(1)) {
-        if(dfmp3.getStatus().state == DfMp3_StatusState_Paused) {
-            dfmp3.start();
-            Serial.println("playing resumed");
-        } else {
-            dfmp3.pause();
-            Serial.println("playing paused");
-        }
+        gpsInfoBigText = !gpsInfoBigText;
     }
 
     if(btn.hasClicks(2)) {
@@ -202,6 +199,57 @@ void loop() {
         increaseVolume = !increaseVolume;
     }
 
-    while (gpsSerial.available() > 0)
-        Serial.write(gpsSerial.read());
+    while (gpsSerial.available() > 0) {
+        if (gps.encode(gpsSerial.read())) {
+            displayInfo();
+        }
+    }
+}
+
+void displayInfo() {
+    display.clearDisplay();
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
+
+    if (gps.location.isValid()) {
+        if(gpsInfoBigText) {
+            display.setTextSize(1);
+            display.print("LT");
+            display.setCursor(0, 20);
+            display.print("LN");
+
+            display.setTextSize(2);
+            display.setCursor(13, 0);
+            display.println(gps.location.lat(), 6);
+            display.setCursor(13, 17);
+            display.print(gps.location.lng(), 6);
+
+            Serial.print("Latitude: ");
+            Serial.println(gps.location.lat(), 6);
+            Serial.print("Longitude: ");
+            Serial.print(gps.location.lng(), 6);
+        } else {
+            display.setTextSize(1);
+            display.print("UTC ");
+            display.print(gps.time.hour());
+            display.print(":");
+            display.print(gps.time.minute());
+            display.print(" sat used: ");
+            display.print(gps.satellites.value());
+
+            display.setCursor(0, 14);
+            display.print("Latitude:  ");
+            display.println(gps.location.lat(), 6);
+            display.setCursor(0, 24);
+            display.print("Longitude: ");
+            display.println(gps.location.lng(), 6);
+        }
+    } else {
+        display.println("Location not available");
+
+        Serial.println("Location: Not Available");
+    }
+
+    display.display();
+    delay(10);
 }
