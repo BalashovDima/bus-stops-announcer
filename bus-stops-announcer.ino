@@ -144,14 +144,8 @@ void setup() {
 
     // Clear the buffer
     display.clearDisplay();
-    display.setTextSize(1);      // Normal 1:1 pixel scale
-    display.setCursor(0, 0);     // Start at top-left corner
     display.setTextColor(SSD1306_WHITE); // Draw white text
     display.cp437(true);         // Use full 256 char 'Code Page 437' font
-    display.write("Hello world!");
-    display.setCursor(20, 20);
-    display.write("TEST");
-    display.display();
 
     // Start the software serial port at the GPS's default baud
     gpsSerial.begin(GPSBaud);
@@ -237,19 +231,24 @@ void displayInfo() {
             display.print(" sat used: ");
             display.print(gps.satellites.value());
 
-            display.setCursor(0, 14);
+            display.setCursor(0, 8);
             display.print("Latitude:  ");
             display.println(gps.location.lat(), 6);
-            display.setCursor(0, 24);
+            display.setCursor(0, 16);
             display.print("Longitude: ");
             display.println(gps.location.lng(), 6);
+
+            display.setCursor(0, 24);
+            display.print("speed: ");
+            display.print(gps.speed.kmph());
+            display.print("km/h");
         }
     } else {
+        display.setTextSize(1);
         display.println("Location not available");
 
         Serial.println("Location: Not Available");
     }
 
     display.display();
-    delay(10);
 }
