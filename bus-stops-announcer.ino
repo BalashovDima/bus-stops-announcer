@@ -49,6 +49,8 @@ uint16_t trackNumber = 1;
 uint16_t trackCountInFolder1;
 bool secondFinishCall = false;
 bool gpsInfoBigText = false;
+bool showDistancesInsteadOfCord = true;
+double distances[6] = {0};
 uint64_t stopPassedTime = 0;
 uint64_t GPSInfoORDistanceCheckTimer = 0;
 bool showGPSInfo = true;
@@ -99,6 +101,7 @@ class Mp3Notify {
 
 void setup() {
     btn.setBtnLevel(HIGH);
+    btn.setStepTimeout(350);
 
     Serial.begin(57600);
 
@@ -152,21 +155,14 @@ void loop() {
     dfmp3.loop();
 
     if(btn.hasClicks(1)) {
-        gpsInfoBigText = !gpsInfoBigText;
-    }
-
-    if(btn.hasClicks(2)) {
-        trackNumber++;
-        if(trackNumber > trackCountInFolder1) trackNumber = 1;
-        dfmp3.playFolderTrack16(1, trackNumber);
-        Serial.println("next track");
-    }
-
-    if(btn.hasClicks(3)) {
-        trackNumber--;
-        if(trackNumber == 0) trackNumber = trackCountInFolder1;
-        dfmp3.playFolderTrack16(1, trackNumber);
-        Serial.println("prev track");
+        if(showDistancesInsteadOfCord) {
+            gpsInfoBigText = true;
+            showDistancesInsteadOfCord = false;
+        } else if(gpsInfoBigText) {
+            gpsInfoBigText = false;
+        } else {
+            showDistancesInsteadOfCord = true;
+        }
     }
 
     if(btn.step()) {
@@ -192,25 +188,32 @@ void loop() {
     if(showGPSInfo) {
         while (gpsSerial.available() > 0) {
             if (gps.encode(gpsSerial.read())) {
+                distances[0] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.233362756292046, 33.203013111690495);
+                distances[1] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.23774695200957, 33.20839631107007);
+                distances[2] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.239598177386306, 33.20508454830953);
+                distances[3] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.24026715384555, 33.18343797286908);
+                distances[4] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.229328194391684, 33.18545848091145);
+                distances[5] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.22499374814668, 33.192970757259225);
+
                 displayInfo();
 
                 if(millis() - stopPassedTime >= 10000) {
-                    if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.233362756292046, 33.203013111690495) <= radiusDistanceCheck) { // лісового, світлофор навпроти коледжу
+                    if(distances[0] <= radiusDistanceCheck) { // лісового, світлофор навпроти коледжу
                         stopPassedTime = millis();
                         dfmp3.playFolderTrack16(2, 1);
-                    } else if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.23774695200957, 33.20839631107007) <= radiusDistanceCheck) { // перехрестя на проспекті миру навпроти коня
+                    } else if(distances[1] <= radiusDistanceCheck) { // перехрестя на проспекті миру навпроти коня
                         dfmp3.playFolderTrack16(2, 2);
                         stopPassedTime = millis();
-                    } else if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.239598177386306, 33.20508454830953) <= radiusDistanceCheck) { // круг біля краєзнавчого музею та екомаркета
+                    } else if(distances[2] <= radiusDistanceCheck) { // круг біля краєзнавчого музею та екомаркета
                         dfmp3.playFolderTrack16(2, 3);
                         stopPassedTime = millis();
-                    } else if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.24026715384555, 33.18343797286908) <= radiusDistanceCheck) { // перехрестя успенсько-троїцька клубна
+                    } else if(distances[3] <= radiusDistanceCheck) { // перехрестя успенсько-троїцька клубна
                         dfmp3.playFolderTrack16(2, 4);
                         stopPassedTime = millis();
-                    } else if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.229328194391684, 33.18545848091145) <= radiusDistanceCheck) { // нова пошта №3
+                    } else if(distances[4] <= radiusDistanceCheck) { // нова пошта №3
                         dfmp3.playFolderTrack16(2, 5);
                         stopPassedTime = millis();
-                    } else if(calculateDistance(gps.location.lat(), gps.location.lng(), 51.22499374814668, 33.192970757259225) <= radiusDistanceCheck) { // перехрестя шляхопровід (вул свободи пр. миру)
+                    } else if(distances[5] <= radiusDistanceCheck) { // перехрестя шляхопровід (вул свободи пр. миру)
                         dfmp3.playFolderTrack16(2, 6);
                         stopPassedTime = millis();
                     }
@@ -235,7 +238,18 @@ void displayInfo() {
         }
 
         if (gps.location.isValid()) {
-            if(gpsInfoBigText) {
+            if(showDistancesInsteadOfCord) {
+                display.setTextSize(1);
+                for(byte i = 0; i < 2; i++) {
+                    for (byte j = 0; j < 3; j++) {
+                        byte cordNumber = j+(i*3);
+                        display.setCursor(i * 64, j * 10);
+                        display.print(cordNumber);
+                        display.print(") ");
+                        display.print(distances[cordNumber], 1);
+                    }
+                }
+            } else if(gpsInfoBigText) {
                 display.setTextSize(1);
                 display.print("LT");
                 display.setCursor(0, 20);
