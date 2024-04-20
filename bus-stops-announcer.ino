@@ -1,5 +1,7 @@
-#define BUTTON_PIN 9
+#define BUTTON_PIN A3
+#define NUMBER_OF_BUTTONS 3
 
+#include <AnalogKey.h>
 #include <EncButton.h>
 #include <SoftwareSerial.h>
 #include <DFMiniMp3.h> // https://github.com/Makuna/DFMiniMp3
@@ -28,7 +30,12 @@ SoftwareSerial gpsSerial(RX_GPS, TX_GPS); // Create a software serial port calle
 TinyGPSPlus gps;
 #define EARTH_RADIUS 6371  // Earth's radius in kilometers
 
-Button btn(BUTTON_PIN);
+int16_t sigs[NUMBER_OF_BUTTONS] = {413, 122, 0}; // array of signal value of buttons
+AnalogKey<BUTTON_PIN, NUMBER_OF_BUTTONS, sigs> keys; // pin of button, number of buttons, array of signal
+// Button btn(BUTTON_PIN);
+VirtButton btn_1;
+VirtButton btn_2;
+VirtButton btn_3;
 
 
 class Mp3Notify; // forward declare the notify class, just the name
@@ -38,7 +45,7 @@ class Mp3Notify; // forward declare the notify class, just the name
 
 // Some arduino boards only have one hardware serial port, so a software serial port is needed instead.
 // comment out the above definitions and use these
-SoftwareSerial secondarySerial(5, 4); // RX (DF player's TX), TX (DF player's RX)
+SoftwareSerial secondarySerial(9, 8); // RX (DF player's TX), TX (DF player's RX)
 typedef DFMiniMp3<SoftwareSerial, Mp3Notify> DfMp3;
 DfMp3 dfmp3(secondarySerial);
 
@@ -100,8 +107,7 @@ class Mp3Notify {
 };
 
 void setup() {
-    btn.setBtnLevel(HIGH);
-    btn.setStepTimeout(350);
+    keys.setWindow(50);
 
     Serial.begin(57600);
 
@@ -151,10 +157,14 @@ void setup() {
 }
 
 void loop() {
-    btn.tick();
+    btn_1.tick(keys.status(0));
+    btn_2.tick(keys.status(1));
+    btn_3.tick(keys.status(3));
+
     dfmp3.loop();
 
-    if(btn.hasClicks(1)) {
+    if(btn_1.hasClicks(1)) {
+        Serial.println("button clicked");
         if(showDistancesInsteadOfCord) {
             gpsInfoBigText = true;
             showDistancesInsteadOfCord = false;
@@ -165,7 +175,8 @@ void loop() {
         }
     }
 
-    if(btn.step()) {
+    if(btn_1.step()) {
+        Serial.println("button step");
         if(increaseRadiusDistanceCheck) {
             if(radiusDistanceCheck < 30) {
                 radiusDistanceCheck++;
@@ -181,7 +192,8 @@ void loop() {
         }
     }
 
-    if(btn.releaseStep()) {
+    if(btn_1.releaseStep()) {
+        Serial.println("button release step");
         increaseRadiusDistanceCheck = !increaseRadiusDistanceCheck;
     }
 
@@ -232,6 +244,8 @@ void displayInfo() {
     display.setCursor(0, 0);
 
     if(showGPSInfo) {
+        Serial.println("showing gps info");
+        
         if(millis() - GPSInfoORDistanceCheckTimer >= 3000) {
             showGPSInfo = false;
             GPSInfoORDistanceCheckTimer = millis();
@@ -293,6 +307,7 @@ void displayInfo() {
             Serial.println("Location: Not Available");
         }
     } else {
+        Serial.println("showing check distance");
         if(millis() - GPSInfoORDistanceCheckTimer >= 1000) {
             showGPSInfo = true;
             GPSInfoORDistanceCheckTimer = millis();
