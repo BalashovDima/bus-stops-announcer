@@ -23,8 +23,8 @@
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-#define RX_GPS 3 // arduino rx pin for gps (gps's tx)
-#define TX_GPS 2 // arduino tx pin for gps (gps's rx)
+#define RX_GPS 2 // arduino rx pin for gps (gps's tx)
+#define TX_GPS 3 // arduino tx pin for gps (gps's rx)
 #define GPSBaud 9600 // Default baud of NEO-6M is 9600
 SoftwareSerial gpsSerial(RX_GPS, TX_GPS); // Create a software serial port called "gpsSerial"
 TinyGPSPlus gps;
@@ -38,22 +38,22 @@ VirtButton btn_2;
 VirtButton btn_3;
 
 
-class Mp3Notify; // forward declare the notify class, just the name
+// class Mp3Notify; // forward declare the notify class, just the name
 
 // typedef DFMiniMp3<HardwareSerial, Mp3Notify> DfMp3; // define a handy type using serial and our notify class
 // DfMp3 dfmp3(Serial1); // instance a DfMp3 object
 
 // Some arduino boards only have one hardware serial port, so a software serial port is needed instead.
 // comment out the above definitions and use these
-SoftwareSerial secondarySerial(9, 8); // RX (DF player's TX), TX (DF player's RX)
-typedef DFMiniMp3<SoftwareSerial, Mp3Notify> DfMp3;
-DfMp3 dfmp3(secondarySerial);
+// SoftwareSerial secondarySerial(9, 8); // RX (DF player's TX), TX (DF player's RX)
+// typedef DFMiniMp3<SoftwareSerial, Mp3Notify> DfMp3;
+// DfMp3 dfmp3(secondarySerial);
 
-bool increaseRadiusDistanceCheck = true;
+// bool increaseRadiusDistanceCheck = true;
 uint16_t radiusDistanceCheck = 5;
-uint16_t volume;
-uint16_t trackNumber = 1;
-uint16_t trackCountInFolder1;
+// uint16_t volume;
+// uint16_t trackNumber = 1;
+// uint16_t trackCountInFolder1;
 bool secondFinishCall = false;
 bool gpsInfoBigText = false;
 bool showDistancesInsteadOfCord = true;
@@ -64,47 +64,47 @@ bool showGPSInfo = true;
 
 // implement a notification class,
 // its member methods will get called
-class Mp3Notify {
-    public:
-        static void PrintlnSourceAction(DfMp3_PlaySources source, const char *action) {
-            if (source & DfMp3_PlaySources_Sd) {
-                Serial.print("SD Card, ");
-            }
+// class Mp3Notify {
+//     public:
+//         static void PrintlnSourceAction(DfMp3_PlaySources source, const char *action) {
+//             if (source & DfMp3_PlaySources_Sd) {
+//                 Serial.print("SD Card, ");
+//             }
 
-            if (source & DfMp3_PlaySources_Usb) {
-                Serial.print("USB Disk, ");
-            }
+//             if (source & DfMp3_PlaySources_Usb) {
+//                 Serial.print("USB Disk, ");
+//             }
 
-            if (source & DfMp3_PlaySources_Flash) {
-                Serial.print("Flash, ");
-            }
+//             if (source & DfMp3_PlaySources_Flash) {
+//                 Serial.print("Flash, ");
+//             }
 
-            Serial.println(action);
-        }
+//             Serial.println(action);
+//         }
 
-        static void OnError([[maybe_unused]] DfMp3 &mp3, uint16_t errorCode) {
-            // see DfMp3_Error for code meaning
-            Serial.println();
-            Serial.print("Com Error ");
-            Serial.println(errorCode);
-        }
+//         static void OnError([[maybe_unused]] DfMp3 &mp3, uint16_t errorCode) {
+//             // see DfMp3_Error for code meaning
+//             Serial.println();
+//             Serial.print("Com Error ");
+//             Serial.println(errorCode);
+//         }
 
-        static void OnPlayFinished([[maybe_unused]] DfMp3 &mp3, [[maybe_unused]] DfMp3_PlaySources source, uint16_t track) {
-            stopPassedTime = millis();
-        }
+//         static void OnPlayFinished([[maybe_unused]] DfMp3 &mp3, [[maybe_unused]] DfMp3_PlaySources source, uint16_t track) {
+//             stopPassedTime = millis();
+//         }
 
-        static void OnPlaySourceOnline([[maybe_unused]] DfMp3 &mp3, DfMp3_PlaySources source) {
-            PrintlnSourceAction(source, "online");
-        }
+//         static void OnPlaySourceOnline([[maybe_unused]] DfMp3 &mp3, DfMp3_PlaySources source) {
+//             PrintlnSourceAction(source, "online");
+//         }
 
-        static void OnPlaySourceInserted([[maybe_unused]] DfMp3 &mp3, DfMp3_PlaySources source) {
-            PrintlnSourceAction(source, "inserted");
-        }
+//         static void OnPlaySourceInserted([[maybe_unused]] DfMp3 &mp3, DfMp3_PlaySources source) {
+//             PrintlnSourceAction(source, "inserted");
+//         }
 
-        static void OnPlaySourceRemoved([[maybe_unused]] DfMp3 &mp3, DfMp3_PlaySources source) {
-            PrintlnSourceAction(source, "removed");
-        }
-};
+//         static void OnPlaySourceRemoved([[maybe_unused]] DfMp3 &mp3, DfMp3_PlaySources source) {
+//             PrintlnSourceAction(source, "removed");
+//         }
+// };
 
 void setup() {
     keys.setWindow(50);
@@ -112,7 +112,7 @@ void setup() {
     Serial.begin(57600);
 
     Serial.println("initializing DF player...");
-    dfmp3.begin();
+    // dfmp3.begin();
     // for boards that support hardware arbitrary pins
     // dfmp3.begin(6, 5); // RX, TX
 
@@ -120,27 +120,27 @@ void setup() {
     // into a known state by calling reset().
     // You may hear popping when starting and you can remove this
     // call to reset() once your project is finalized
-    dfmp3.reset();
+    // dfmp3.reset();
 
-    uint16_t version = dfmp3.getSoftwareVersion();
-    Serial.print("version ");
-    Serial.println(version);
+    // uint16_t version = dfmp3.getSoftwareVersion();
+    // Serial.print("version ");
+    // Serial.println(version);
 
-    // uint16_t volume = dfmp3.getVolume();
-    volume = dfmp3.getVolume();
-    Serial.print("volume was ");
-    Serial.println(volume);
-    Serial.println("now it's set to 15");
-    dfmp3.setVolume(15);
-    volume = 15;
+    // // uint16_t volume = dfmp3.getVolume();
+    // volume = dfmp3.getVolume();
+    // Serial.print("volume was ");
+    // Serial.println(volume);
+    // Serial.println("now it's set to 15");
+    // dfmp3.setVolume(15);
+    // volume = 15;
 
-    uint16_t count = dfmp3.getTotalTrackCount(DfMp3_PlaySource_Sd);
-    Serial.print("files total ");
-    Serial.println(count);
+    // uint16_t count = dfmp3.getTotalTrackCount(DfMp3_PlaySource_Sd);
+    // Serial.print("files total ");
+    // Serial.println(count);
 
-    trackCountInFolder1 = dfmp3.getFolderTrackCount(1);
-    Serial.print("tracks in folder '01'");
-    Serial.println(trackCountInFolder1);
+    // trackCountInFolder1 = dfmp3.getFolderTrackCount(1);
+    // Serial.print("tracks in folder '01'");
+    // Serial.println(trackCountInFolder1);
 
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
@@ -161,7 +161,7 @@ void loop() {
     btn_2.tick(keys.status(1));
     btn_3.tick(keys.status(3));
 
-    dfmp3.loop();
+    // dfmp3.loop();
 
     if(btn_1.hasClicks(1)) {
         Serial.println("button clicked");
@@ -175,27 +175,27 @@ void loop() {
         }
     }
 
-    if(btn_1.step()) {
-        Serial.println("button step");
-        if(increaseRadiusDistanceCheck) {
-            if(radiusDistanceCheck < 30) {
-                radiusDistanceCheck++;
-                showGPSInfo = false;
-                GPSInfoORDistanceCheckTimer = millis();
-            }
-        } else {
-            if(radiusDistanceCheck > 1) {
-                radiusDistanceCheck--;
-                showGPSInfo = false;
-                GPSInfoORDistanceCheckTimer = millis();
-            }
-        }
-    }
+    // if(btn_1.step()) {
+    //     Serial.println("button step");
+    //     if(increaseRadiusDistanceCheck) {
+    //         if(radiusDistanceCheck < 30) {
+    //             radiusDistanceCheck++;
+    //             showGPSInfo = false;
+    //             GPSInfoORDistanceCheckTimer = millis();
+    //         }
+    //     } else {
+    //         if(radiusDistanceCheck > 1) {
+    //             radiusDistanceCheck--;
+    //             showGPSInfo = false;
+    //             GPSInfoORDistanceCheckTimer = millis();
+    //         }
+    //     }
+    // }
 
-    if(btn_1.releaseStep()) {
-        Serial.println("button release step");
-        increaseRadiusDistanceCheck = !increaseRadiusDistanceCheck;
-    }
+    // if(btn_1.releaseStep()) {
+    //     Serial.println("button release step");
+    //     increaseRadiusDistanceCheck = !increaseRadiusDistanceCheck;
+    // }
 
     if(showGPSInfo) {
         while (gpsSerial.available() > 0) {
@@ -209,27 +209,27 @@ void loop() {
 
                 displayInfo();
 
-                if(millis() - stopPassedTime >= 10000) {
-                    if(distances[0] <= radiusDistanceCheck) { // лісового, світлофор навпроти коледжу
-                        stopPassedTime = millis();
-                        dfmp3.playFolderTrack16(2, 1);
-                    } else if(distances[1] <= radiusDistanceCheck) { // перехрестя на проспекті миру навпроти коня
-                        dfmp3.playFolderTrack16(2, 2);
-                        stopPassedTime = millis();
-                    } else if(distances[2] <= radiusDistanceCheck) { // круг біля краєзнавчого музею та екомаркета
-                        dfmp3.playFolderTrack16(2, 3);
-                        stopPassedTime = millis();
-                    } else if(distances[3] <= radiusDistanceCheck) { // перехрестя успенсько-троїцька клубна
-                        dfmp3.playFolderTrack16(2, 4);
-                        stopPassedTime = millis();
-                    } else if(distances[4] <= radiusDistanceCheck) { // нова пошта №3
-                        dfmp3.playFolderTrack16(2, 5);
-                        stopPassedTime = millis();
-                    } else if(distances[5] <= radiusDistanceCheck) { // перехрестя шляхопровід (вул свободи пр. миру)
-                        dfmp3.playFolderTrack16(2, 6);
-                        stopPassedTime = millis();
-                    }
-                }
+                // if(millis() - stopPassedTime >= 10000) {
+                //     if(distances[0] <= radiusDistanceCheck) { // лісового, світлофор навпроти коледжу
+                //         stopPassedTime = millis();
+                //         dfmp3.playFolderTrack16(2, 1);
+                //     } else if(distances[1] <= radiusDistanceCheck) { // перехрестя на проспекті миру навпроти коня
+                //         dfmp3.playFolderTrack16(2, 2);
+                //         stopPassedTime = millis();
+                //     } else if(distances[2] <= radiusDistanceCheck) { // круг біля краєзнавчого музею та екомаркета
+                //         dfmp3.playFolderTrack16(2, 3);
+                //         stopPassedTime = millis();
+                //     } else if(distances[3] <= radiusDistanceCheck) { // перехрестя успенсько-троїцька клубна
+                //         dfmp3.playFolderTrack16(2, 4);
+                //         stopPassedTime = millis();
+                //     } else if(distances[4] <= radiusDistanceCheck) { // нова пошта №3
+                //         dfmp3.playFolderTrack16(2, 5);
+                //         stopPassedTime = millis();
+                //     } else if(distances[5] <= radiusDistanceCheck) { // перехрестя шляхопровід (вул свободи пр. миру)
+                //         dfmp3.playFolderTrack16(2, 6);
+                //         stopPassedTime = millis();
+                //     }
+                // }
             }
         }
     } else {
