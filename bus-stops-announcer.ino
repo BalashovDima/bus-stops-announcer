@@ -12,6 +12,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <TinyGPS++.h>
+#include "./display_7_segment.h"
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -65,6 +66,8 @@ double distances[6] = {0};
 uint64_t stopPassedTime = 0;
 uint64_t GPSInfoORDistanceCheckTimer = 0;
 bool showGPSInfo = true;
+
+uint8_t line_number = 0;
 
 // implement a notification class,
 // its member methods will get called
@@ -191,6 +194,10 @@ void setup() {
 
     // Start the software serial port at the GPS's default baud
     Serial3.begin(GPSBaud);
+
+    pinMode(RESET_PIN, OUTPUT);
+    pinMode(CLOCK_PIN, OUTPUT);
+    resetNumber();
 }
 
 void loop() {
@@ -201,6 +208,15 @@ void loop() {
     dfmp3.loop();
 
     if(btn_1.hasClicks(1)) {
+        line_number == 0 ? line_number = 9 : line_number--;
+        showNumber(line_number);
+    }
+    if(btn_3.hasClicks(1)) {
+        line_number == 9 ? line_number = 0 : line_number++;
+        showNumber(line_number);
+    }
+
+    if(btn_2.hasClicks(1)) {
         Serial.println("button clicked");
         if(showDistancesInsteadOfCord) {
             gpsInfoBigText = true;
@@ -212,7 +228,7 @@ void loop() {
         }
     }
 
-    if(btn_1.step()) {
+    if(btn_2.step()) {
         Serial.println("button step");
         if(increaseRadiusDistanceCheck) {
             if(radiusDistanceCheck < 30) {
@@ -229,7 +245,7 @@ void loop() {
         }
     }
 
-    if(btn_1.releaseStep()) {
+    if(btn_2.releaseStep()) {
         Serial.println("button release step");
         increaseRadiusDistanceCheck = !increaseRadiusDistanceCheck;
     }
