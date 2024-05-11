@@ -1,4 +1,6 @@
-#define BUTTON_PIN A3
+#define DEBUGGING
+
+#define BUTTON_PIN A9
 #define NUMBER_OF_BUTTONS 3
 
 #include <AnalogKey.h>
@@ -10,6 +12,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <TinyGPS++.h>
+#include "./display_7_segment.h"
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -23,10 +26,13 @@
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-#define RX_GPS 2 // arduino rx pin for gps (gps's tx)
-#define TX_GPS 3 // arduino tx pin for gps (gps's rx)
+
+// #define RX_GPS 15 // arduino rx pin for gps (gps's tx)
+// #define TX_GPS 14 // arduino tx pin for gps (gps's rx)
+
 #define GPSBaud 9600 // Default baud of NEO-6M is 9600
-SoftwareSerial gpsSerial(RX_GPS, TX_GPS); // Create a software serial port called "gpsSerial"
+// moved to mega with it's own hardware serial so there is no need for software serial
+// SoftwareSerial Serial3(RX_GPS, TX_GPS); // Create a software serial port called "Serial3"
 TinyGPSPlus gps;
 #define EARTH_RADIUS 6371  // Earth's radius in kilometers
 
@@ -38,22 +44,29 @@ VirtButton btn_2;
 VirtButton btn_3;
 
 
-// class Mp3Notify; // forward declare the notify class, just the name
 
-// typedef DFMiniMp3<HardwareSerial, Mp3Notify> DfMp3; // define a handy type using serial and our notify class
-// DfMp3 dfmp3(Serial1); // instance a DfMp3 object
+#define STARTING_VOLUME 20
+class Mp3Notify; // forward declare the notify class, just the name
+
+
+typedef DFMiniMp3<HardwareSerial, Mp3Notify> DfMp3; // define a handy type using serial and our notify class
+DfMp3 dfmp3(Serial2); // instance a DfMp3 object
 
 // Some arduino boards only have one hardware serial port, so a software serial port is needed instead.
 // comment out the above definitions and use these
-// SoftwareSerial secondarySerial(9, 8); // RX (DF player's TX), TX (DF player's RX)
+
+// SoftwareSerial secondarySerial(17, 16); // RX (DF player's TX), TX (DF player's RX)
+
 // typedef DFMiniMp3<SoftwareSerial, Mp3Notify> DfMp3;
 // DfMp3 dfmp3(secondarySerial);
 
 // bool increaseRadiusDistanceCheck = true;
 uint16_t radiusDistanceCheck = 5;
-// uint16_t volume;
-// uint16_t trackNumber = 1;
-// uint16_t trackCountInFolder1;
+
+uint16_t volume = STARTING_VOLUME;
+uint16_t trackNumber = 1;
+uint16_t trackCountInFolder1;
+
 bool secondFinishCall = false;
 bool gpsInfoBigText = false;
 bool showDistancesInsteadOfCord = true;
@@ -61,6 +74,8 @@ double distances[6] = {0};
 uint64_t stopPassedTime = 0;
 uint64_t GPSInfoORDistanceCheckTimer = 0;
 bool showGPSInfo = true;
+
+uint8_t line_number = 0;
 
 // implement a notification class,
 // its member methods will get called
@@ -111,8 +126,30 @@ void setup() {
 
     Serial.begin(57600);
 
-    Serial.println("initializing DF player...");
-    // dfmp3.begin();
+    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+    if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+        Serial.println(F("SSD1306 allocation failed"));
+    }
+
+    #ifdef DEBUGGING
+        display.display();
+        delay(700); 
+    #endif
+
+    // Clear the buffer
+    display.clearDisplay();
+    display.setTextColor(SSD1306_WHITE); // Draw white text
+    display.cp437(true);         // Use full 256 char 'Code Page 437' font
+
+    #ifdef DEBUGGING
+        display.setTextSize(1);
+        display.setCursor(0, 0);
+        display.print("initializing DF player...");
+        display.display();
+        Serial.println("initializing DF player...");
+    #endif
+
+    dfmp3.begin();
     // for boards that support hardware arbitrary pins
     // dfmp3.begin(6, 5); // RX, TX
 
@@ -122,38 +159,53 @@ void setup() {
     // call to reset() once your project is finalized
     // dfmp3.reset();
 
-    // uint16_t version = dfmp3.getSoftwareVersion();
-    // Serial.print("version ");
-    // Serial.println(version);
+    uint16_t version = dfmp3.getSoftwareVersion();
+    uint16_t total_track_count = dfmp3.getTotalTrackCount(DfMp3_PlaySource_Sd);
+    trackCountInFolder1 = dfmp3.getFolderTrackCount(1);
+    dfmp3.setVolume(STARTING_VOLUME);
 
-    // // uint16_t volume = dfmp3.getVolume();
-    // volume = dfmp3.getVolume();
-    // Serial.print("volume was ");
-    // Serial.println(volume);
-    // Serial.println("now it's set to 15");
-    // dfmp3.setVolume(15);
-    // volume = 15;
+    // show some info on dfplayer (to let know that it's working)
+    #ifdef DEBUGGING
+        Serial.println("done initializing DFPlayer...");
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setCursor(0, 0);
+        display.print("done initializing DFPlayer...");
+        display.display();
+        delay(700);
 
-    // uint16_t count = dfmp3.getTotalTrackCount(DfMp3_PlaySource_Sd);
-    // Serial.print("files total ");
-    // Serial.println(count);
+        Serial.print("version ");
+        Serial.println(version);
+        display.clearDisplay();
+        display.setCursor(0, 0);
+        display.print("version ");
+        display.print(version);
 
-    // trackCountInFolder1 = dfmp3.getFolderTrackCount(1);
-    // Serial.print("tracks in folder '01'");
-    // Serial.println(trackCountInFolder1);
+        Serial.print("files total ");
+        Serial.println(total_track_count);
+        display.setCursor(0, 8);
+        display.print("tracks total: ");
+        display.print(total_track_count);
+        display.display();
 
-    // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-    if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-        Serial.println(F("SSD1306 allocation failed"));
-    }
+        Serial.print("volume ");
+        Serial.println(volume);
+        display.setCursor(0, 16);
+        display.print("volume: ");
+        display.print(volume);
+        display.display();
 
-    // Clear the buffer
-    display.clearDisplay();
-    display.setTextColor(SSD1306_WHITE); // Draw white text
-    display.cp437(true);         // Use full 256 char 'Code Page 437' font
+        delay(700);
+    #endif
+    // uint16_t volume = dfmp3.getVolume();
+    
 
     // Start the software serial port at the GPS's default baud
-    gpsSerial.begin(GPSBaud);
+    Serial3.begin(GPSBaud);
+
+    pinMode(RESET_PIN, OUTPUT);
+    pinMode(CLOCK_PIN, OUTPUT);
+    resetNumber();
 }
 
 void loop() {
@@ -164,6 +216,15 @@ void loop() {
     // dfmp3.loop();
 
     if(btn_1.hasClicks(1)) {
+        line_number == 0 ? line_number = 9 : line_number--;
+        showNumber(line_number);
+    }
+    if(btn_3.hasClicks(1)) {
+        line_number == 9 ? line_number = 0 : line_number++;
+        showNumber(line_number);
+    }
+
+    if(btn_2.hasClicks(1)) {
         Serial.println("button clicked");
         if(showDistancesInsteadOfCord) {
             gpsInfoBigText = true;
@@ -175,31 +236,31 @@ void loop() {
         }
     }
 
-    // if(btn_1.step()) {
-    //     Serial.println("button step");
-    //     if(increaseRadiusDistanceCheck) {
-    //         if(radiusDistanceCheck < 30) {
-    //             radiusDistanceCheck++;
-    //             showGPSInfo = false;
-    //             GPSInfoORDistanceCheckTimer = millis();
-    //         }
-    //     } else {
-    //         if(radiusDistanceCheck > 1) {
-    //             radiusDistanceCheck--;
-    //             showGPSInfo = false;
-    //             GPSInfoORDistanceCheckTimer = millis();
-    //         }
-    //     }
-    // }
+    if(btn_2.step()) {
+        Serial.println("button step");
+        if(increaseRadiusDistanceCheck) {
+            if(radiusDistanceCheck < 30) {
+                radiusDistanceCheck++;
+                showGPSInfo = false;
+                GPSInfoORDistanceCheckTimer = millis();
+            }
+        } else {
+            if(radiusDistanceCheck > 1) {
+                radiusDistanceCheck--;
+                showGPSInfo = false;
+                GPSInfoORDistanceCheckTimer = millis();
+            }
+        }
+    }
 
-    // if(btn_1.releaseStep()) {
-    //     Serial.println("button release step");
-    //     increaseRadiusDistanceCheck = !increaseRadiusDistanceCheck;
-    // }
+    if(btn_2.releaseStep()) {
+        Serial.println("button release step");
+        increaseRadiusDistanceCheck = !increaseRadiusDistanceCheck;
+    }
 
     if(showGPSInfo) {
-        while (gpsSerial.available() > 0) {
-            if (gps.encode(gpsSerial.read())) {
+        while (Serial3.available() > 0) {
+            if (gps.encode(Serial3.read())) {
                 distances[0] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.233362756292046, 33.203013111690495);
                 distances[1] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.23774695200957, 33.20839631107007);
                 distances[2] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.239598177386306, 33.20508454830953);
