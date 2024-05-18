@@ -13,6 +13,7 @@
 #include <Adafruit_SSD1306.h>
 #include <TinyGPS++.h>
 #include "./display_7_segment.h"
+#include "./coordinates.h"
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -67,7 +68,7 @@ uint64_t stopPassedTime = 0;
 uint64_t GPSInfoORDistanceCheckTimer = 0;
 bool showGPSInfo = true;
 
-uint8_t line_number = 0;
+Coordinates coordinates;
 
 // implement a notification class,
 // its member methods will get called
@@ -208,12 +209,12 @@ void loop() {
     dfmp3.loop();
 
     if(btn_1.hasClicks(1)) {
-        line_number == 0 ? line_number = 9 : line_number--;
-        showNumber(line_number);
+        coordinates.prevLine();
+        showNumber(coordinates.currentLine());
     }
     if(btn_3.hasClicks(1)) {
-        line_number == 9 ? line_number = 0 : line_number++;
-        showNumber(line_number);
+        coordinates.nextLine();
+        showNumber(coordinates.currentLine());
     }
 
     if(btn_2.hasClicks(1)) {
