@@ -63,7 +63,8 @@ uint16_t trackCountInFolder1;
 bool secondFinishCall = false;
 bool gpsInfoBigText = false;
 bool showDistancesInsteadOfCord = true;
-double distances[6] = {0};
+double distances[STOPS_MAX] = {0};
+uint8_t index_of_shortest[STOPS_MAX];
 uint64_t stopPassedTime = 0;
 uint64_t GPSInfoORDistanceCheckTimer = 0;
 bool showGPSInfo = true;
@@ -117,8 +118,8 @@ class Mp3Notify {
 void setup() {
     keys.setWindow(50);
 
-    Serial.begin(57600);
-
+    Serial.begin(115200);
+    
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
         Serial.println(F("SSD1306 allocation failed"));
@@ -254,36 +255,20 @@ void loop() {
     if(showGPSInfo) {
         while (Serial3.available() > 0) {
             if (gps.encode(Serial3.read())) {
-                distances[0] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.233362756292046, 33.203013111690495);
-                distances[1] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.23774695200957, 33.20839631107007);
-                distances[2] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.239598177386306, 33.20508454830953);
-                distances[3] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.24026715384555, 33.18343797286908);
-                distances[4] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.229328194391684, 33.18545848091145);
-                distances[5] = calculateDistance(gps.location.lat(), gps.location.lng(), 51.22499374814668, 33.192970757259225);
+                Serial.println("\nThe distances are: ");
+
+                for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
+                    distances[i] = calculateDistance(gps.location.lat(), gps.location.lng(), coordinates.getLat(i), coordinates.getLng(i));
+
+                    index_of_shortest[i] = i;
+
+                    Serial.print(distances[i]);
+                    Serial.print("  ");
+                }
+
+
 
                 displayInfo();
-
-                if(millis() - stopPassedTime >= 10000) {
-                    if(distances[0] <= radiusDistanceCheck) { // лісового, світлофор навпроти коледжу
-                        stopPassedTime = millis();
-                        dfmp3.playFolderTrack16(2, 1);
-                    } else if(distances[1] <= radiusDistanceCheck) { // перехрестя на проспекті миру навпроти коня
-                        dfmp3.playFolderTrack16(2, 2);
-                        stopPassedTime = millis();
-                    } else if(distances[2] <= radiusDistanceCheck) { // круг біля краєзнавчого музею та екомаркета
-                        dfmp3.playFolderTrack16(2, 3);
-                        stopPassedTime = millis();
-                    } else if(distances[3] <= radiusDistanceCheck) { // перехрестя успенсько-троїцька клубна
-                        dfmp3.playFolderTrack16(2, 4);
-                        stopPassedTime = millis();
-                    } else if(distances[4] <= radiusDistanceCheck) { // нова пошта №3
-                        dfmp3.playFolderTrack16(2, 5);
-                        stopPassedTime = millis();
-                    } else if(distances[5] <= radiusDistanceCheck) { // перехрестя шляхопровід (вул свободи пр. миру)
-                        dfmp3.playFolderTrack16(2, 6);
-                        stopPassedTime = millis();
-                    }
-                }
             }
         }
     } else {
@@ -300,20 +285,37 @@ void displayInfo() {
     if(showGPSInfo) {
         Serial.println("showing gps info");
         
-        if(millis() - GPSInfoORDistanceCheckTimer >= 3000) {
-            showGPSInfo = false;
-            GPSInfoORDistanceCheckTimer = millis();
-        }
+        // if(millis() - GPSInfoORDistanceCheckTimer >= 3000) {
+        //     showGPSInfo = false;
+        //     GPSInfoORDistanceCheckTimer = millis();
+        // }
 
         if (gps.location.isValid()) {
-            if(showDistancesInsteadOfCord) {
+            if(showDistancesInsteadOfCord) { // show six shortest distances
+
+                // sort distances and their coordinated from smallest to largest
+                for (int i = 0; i < coordinates.getStopsNum() - 1; i++) {
+                    int minIndex = i;
+                    for (int j = i + 1; j < coordinates.getStopsNum(); j++) {
+                        if (distances[j] < distances[minIndex]) {
+                            minIndex = j;
+                        }
+                    }
+                    if (minIndex != i) {
+                        // Swap distances and corresponding indexes
+                        swap(distances[i], distances[minIndex]);
+                        swap(index_of_shortest[i], index_of_shortest[minIndex]);
+                    }
+                }
+
+                // print first six 
                 display.setTextSize(1);
                 for(byte i = 0; i < 2; i++) {
                     for (byte j = 0; j < 3; j++) {
                         byte cordNumber = j+(i*3);
                         display.setCursor(i * 64, j * 10);
-                        display.print(cordNumber);
-                        display.print(") ");
+                        display.print(index_of_shortest[cordNumber]);
+                        display.print(")");
                         display.print(distances[cordNumber], 1);
                     }
                 }
@@ -399,4 +401,11 @@ double calculateDistance(double latA, double lonA, double latB, double lonB) {
     double distance = EARTH_RADIUS * c * 1000;
 
     return distance; // in meters
+}
+
+template <typename T>
+void swap(T &a, T &b) {
+    T temp = a;
+    a = b;
+    b = temp;
 }

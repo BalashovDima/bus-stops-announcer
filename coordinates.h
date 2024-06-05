@@ -4,6 +4,7 @@
 #include <Arduino.h>
 
 #define LINES 2
+#define STOPS_MAX 24
 #define LINE0_STOPS_N 24
 #define LINE1_STOPS_N 19
 
@@ -63,13 +64,12 @@ class Coordinates {
     private:
         uint8_t line = 0;
 
-        double getCoord(uint8_t stopNumber, bool lat) {
-            uint8_t coord = lat ? 0 : 1;
+        double getCoord(uint8_t stopNumber, uint8_t latORlong) {
             switch(line) {
                 case 0:
-                    return pgm_read_float(&line0[stopNumber][coord]);
+                    return pgm_read_float(&line0[stopNumber][latORlong]);
                 case 1:
-                    return pgm_read_float(&line1[stopNumber][coord]);
+                    return pgm_read_float(&line1[stopNumber][latORlong]);
                 case 2:
                     break;
                 case 3:
@@ -95,11 +95,11 @@ class Coordinates {
         }
 
         double getLat(uint8_t stopNumber) {
-            return getCoord(stopNumber, true);
+            return getCoord(stopNumber, 0);
         }
 
-        double getLong(uint8_t stopNumber) {
-            return getCoord(stopNumber, false);
+        double getLng(uint8_t stopNumber) {
+            return getCoord(stopNumber, 1);
         }
 
         uint8_t getStopsNum() {
