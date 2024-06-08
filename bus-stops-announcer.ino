@@ -65,6 +65,7 @@ bool gpsInfoBigText = false;
 bool showDistancesInsteadOfCord = true;
 double distances[STOPS_MAX] = {0};
 uint8_t index_of_shortest[STOPS_MAX];
+uint8_t lastStop = 255;
 uint64_t stopPassedTime = 0;
 uint64_t GPSInfoORDistanceCheckTimer = 0;
 bool showGPSInfo = true;
@@ -282,6 +283,15 @@ void loop() {
                     }
                 }
 
+                if(distances[0] <= 4 && gps.speed.kmph() <= 1) {
+                    // if(millis() - stopPassedTime >= 10000) {
+                    if(lastStop != index_of_shortest[0]) {
+                        lastStop = index_of_shortest[0];
+                        // stopPassedTime = millis();
+                        dfmp3.playFolderTrack16(coordinates.currentLine()+1, index_of_shortest[0]);
+                    }
+                }
+
                 displayInfo();
             }
         }
@@ -317,6 +327,12 @@ void displayInfo() {
                     display.print(gps.speed.kmph());
                     display.print("km/h");
 
+                    if(distances[0] <= 4 && gps.speed.kmph() <= 1) {
+                        if (lastStop != index_of_shortest[0]) {
+                            display.setCursor(95, 17);
+                            display.print("!!");
+                        }
+                    }
                 } else {
                     // print first six 
                     display.setTextSize(1);
