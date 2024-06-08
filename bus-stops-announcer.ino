@@ -258,6 +258,7 @@ void loop() {
                 Serial.println("\nThe distances are: ");
 
                 for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
+                    // distances[i] = calculateDistance(51.24017209067963, 33.21328523813368, coordinates.getLat(i), coordinates.getLng(i)); // for testing
                     distances[i] = calculateDistance(gps.location.lat(), gps.location.lng(), coordinates.getLat(i), coordinates.getLng(i));
 
                     index_of_shortest[i] = i;
@@ -266,7 +267,20 @@ void loop() {
                     Serial.print("  ");
                 }
 
-
+                // sort distances and their coordinates from smallest to largest
+                for (int i = 0; i < coordinates.getStopsNum() - 1; i++) {
+                    int minIndex = i;
+                    for (int j = i + 1; j < coordinates.getStopsNum(); j++) {
+                        if (distances[j] < distances[minIndex]) {
+                            minIndex = j;
+                        }
+                    }
+                    if (minIndex != i) {
+                        // Swap distances and corresponding indexes
+                        swap(distances[i], distances[minIndex]);
+                        swap(index_of_shortest[i], index_of_shortest[minIndex]);
+                    }
+                }
 
                 displayInfo();
             }
@@ -292,34 +306,32 @@ void displayInfo() {
 
         if (gps.location.isValid()) {
             if(showDistancesInsteadOfCord) { // show six shortest distances
+                if(distances[0] <= 20) { // if very close to a stop, then show the distance to it and speed with big text size
+                    display.setTextSize(2);
+                    display.setCursor(0, 0);
+                    display.print(index_of_shortest[0]);
+                    display.print(") ");
+                    display.print(distances[0]);
+                    display.print("m");
+                    display.setCursor(0, 17);
+                    display.print(gps.speed.kmph());
+                    display.print("km/h");
 
-                // sort distances and their coordinated from smallest to largest
-                for (int i = 0; i < coordinates.getStopsNum() - 1; i++) {
-                    int minIndex = i;
-                    for (int j = i + 1; j < coordinates.getStopsNum(); j++) {
-                        if (distances[j] < distances[minIndex]) {
-                            minIndex = j;
+                } else {
+                    // print first six 
+                    display.setTextSize(1);
+                    for(byte i = 0; i < 2; i++) {
+                        for (byte j = 0; j < 3; j++) {
+                            byte cordNumber = j+(i*3);
+                            display.setCursor(i * 64, j * 10);
+                            display.print(index_of_shortest[cordNumber]);
+                            display.print(")");
+                            display.print(distances[cordNumber], 1);
                         }
                     }
-                    if (minIndex != i) {
-                        // Swap distances and corresponding indexes
-                        swap(distances[i], distances[minIndex]);
-                        swap(index_of_shortest[i], index_of_shortest[minIndex]);
-                    }
                 }
-
-                // print first six 
-                display.setTextSize(1);
-                for(byte i = 0; i < 2; i++) {
-                    for (byte j = 0; j < 3; j++) {
-                        byte cordNumber = j+(i*3);
-                        display.setCursor(i * 64, j * 10);
-                        display.print(index_of_shortest[cordNumber]);
-                        display.print(")");
-                        display.print(distances[cordNumber], 1);
-                    }
-                }
-            } else if(gpsInfoBigText) {
+                
+            } else if(gpsInfoBigText) { // only show latitude and longitute with big text size
                 display.setTextSize(1);
                 display.print("LT");
                 display.setCursor(0, 20);
@@ -335,7 +347,7 @@ void displayInfo() {
                 Serial.println(gps.location.lat(), 6);
                 Serial.print("Longitude: ");
                 Serial.print(gps.location.lng(), 6);
-            } else {
+            } else { // most robust view (time, num of sat, lat, long, speed)
                 display.setTextSize(1);
                 display.print("UTC ");
                 display.print(gps.time.hour());
