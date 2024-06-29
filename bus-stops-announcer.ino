@@ -190,6 +190,8 @@ void setup() {
         display.print(volume);
         display.display();
 
+        dfmp3.playFolderTrack16(1, 99); // in folder '01', audio '0099' which says 'audio check'
+
         delay(700);
     #endif
     // uint16_t volume = dfmp3.getVolume();
