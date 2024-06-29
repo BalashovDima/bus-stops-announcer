@@ -56,7 +56,7 @@ DfMp3 dfmp3(Serial2); // instance a DfMp3 object
 // DfMp3 dfmp3(secondarySerial);
 
 bool increaseRadiusDistanceCheck = true;
-uint16_t radiusDistanceCheck = 5;
+uint16_t radiusDistanceCheck = 4;
 uint16_t volume = STARTING_VOLUME;
 uint16_t trackNumber = 1;
 uint16_t trackCountInFolder1;
@@ -190,8 +190,6 @@ void setup() {
         display.print(volume);
         display.display();
 
-        dfmp3.playFolderTrack16(1, 99); // in folder '01', audio '0099' which says 'audio check'
-
         delay(700);
     #endif
     // uint16_t volume = dfmp3.getVolume();
@@ -219,6 +217,10 @@ void loop() {
     if(btn_3.hasClicks(1)) {
         coordinates.nextLine();
         showNumber(coordinates.currentLine());
+    }
+
+    if(btn_2.hasClicks(3)) {
+        dfmp3.playFolderTrack16(1, 99); // in folder '01', audio '0099' which says 'audio check'
     }
 
     if(btn_2.hasClicks(1)) {
@@ -285,7 +287,7 @@ void loop() {
                     }
                 }
 
-                if(distances[0] <= 4 && gps.speed.kmph() <= 1) {
+                if(distances[0] <= radiusDistanceCheck && gps.speed.kmph() <= 1) {
                     // if(millis() - stopPassedTime >= 10000) {
                     if(lastStop != index_of_shortest[0]) {
                         lastStop = index_of_shortest[0];
