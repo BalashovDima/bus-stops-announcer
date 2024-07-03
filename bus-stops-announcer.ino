@@ -56,7 +56,7 @@ DfMp3 dfmp3(Serial2); // instance a DfMp3 object
 // DfMp3 dfmp3(secondarySerial);
 
 bool increaseRadiusDistanceCheck = true;
-uint16_t radiusDistanceCheck = 4;
+uint16_t radiusDistanceCheck = 20;
 uint16_t volume = STARTING_VOLUME;
 uint16_t trackNumber = 1;
 uint16_t trackCountInFolder1;
@@ -321,7 +321,7 @@ void displayInfo() {
 
         if (gps.location.isValid()) {
             if(showDistancesInsteadOfCord) { // show six shortest distances
-                if(distances[0] <= 20) { // if very close to a stop, then show the distance to it and speed with big text size
+                if(distances[0] <= 40) { // if very close to a stop, then show the distance to it and speed with big text size
                     display.setTextSize(2);
                     display.setCursor(0, 0);
                     display.print(index_of_shortest[0]);
