@@ -201,6 +201,7 @@ void setup() {
     pinMode(RESET_PIN, OUTPUT);
     pinMode(CLOCK_PIN, OUTPUT);
     resetNumber();
+    showNumber(coordinates.currentLine());
 }
 
 void loop() {

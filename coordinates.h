@@ -8,6 +8,8 @@
 #define LINE0_STOPS_N 24
 #define LINE1_STOPS_N 19
 
+uint8_t lines[LINES] = {8, 5};
+
 const double line0[LINE0_STOPS_N][2] PROGMEM = { // coordinates from start to end for bus line 8 in konotop
     // 24 stops
     {51.21901985314071, 33.156171872003256}, 
@@ -62,10 +64,10 @@ const double line1[LINE1_STOPS_N][2] PROGMEM = { // coordinates from start to en
 
 class Coordinates {
     private:
-        uint8_t line = 0;
+        uint8_t lineIndex = 0;
 
         double getCoord(uint8_t stopNumber, uint8_t latORlong) {
-            switch(line) {
+            switch(lineIndex) {
                 case 0:
                     return pgm_read_float(&line0[stopNumber][latORlong]);
                 case 1:
@@ -79,19 +81,23 @@ class Coordinates {
 
     public:
         void setLineNumber(uint8_t number) {
-            line = number;
+            for(uint8_t i = 0; i < LINES; i++) {
+                if(lines[i] == number) {
+                    lineIndex = i;
+                }
+            }
         }
 
         void nextLine() {
-            line == LINES-1 ? line = 0 : line++;
+            lineIndex == LINES-1 ? lineIndex = 0 : lineIndex++;
         }
 
         void prevLine() {
-            line == 0 ? line = LINES-1 : line--;
+            lineIndex == 0 ? lineIndex = LINES-1 : lineIndex--;
         }
 
         uint8_t currentLine() {
-            return line;
+            return lines[lineIndex];
         }
 
         double getLat(uint8_t stopNumber) {
@@ -103,7 +109,7 @@ class Coordinates {
         }
 
         uint8_t getStopsNum() {
-            switch(line) {
+            switch(lineIndex) {
                 case 0:
                     return LINE0_STOPS_N;
                 case 1:
