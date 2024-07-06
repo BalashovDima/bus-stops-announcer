@@ -293,7 +293,11 @@ void loop() {
                     if(lastStop != index_of_shortest[0]) {
                         lastStop = index_of_shortest[0];
                         // stopPassedTime = millis();
-                        dfmp3.playFolderTrack16(coordinates.currentLine()+1, index_of_shortest[0]);
+
+                        // if going back (passed half of the stops), then audio number resets from the half (i.e. index of the stop minus half), else just stop index
+                        uint8_t audio_number = index_of_shortest[0] > coordinates.getStopsNum()/2 ? index_of_shortest[0] - coordinates.getStopsNum()/2 : index_of_shortest[0];
+                        audio_number++; // in folder audios start from 1, not 0
+                        dfmp3.playFolderTrack16(coordinates.currentLine(), audio_number);
                     }
                 }
 
@@ -332,7 +336,7 @@ void displayInfo() {
                     display.print(gps.speed.kmph());
                     display.print("km/h");
 
-                    if(distances[0] <= 4 && gps.speed.kmph() <= 1) {
+                    if(distances[0] <= radiusDistanceCheck && gps.speed.kmph() <= 1) {
                         if (lastStop != index_of_shortest[0]) {
                             display.setCursor(95, 17);
                             display.print("!!");
