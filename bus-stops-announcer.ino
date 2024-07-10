@@ -58,6 +58,8 @@ DfMp3 dfmp3(Serial2); // instance a DfMp3 object
 bool increaseRadiusDistanceCheck = true;
 uint16_t radiusDistanceCheck = 20;
 uint16_t volume = STARTING_VOLUME;
+uint8_t audio_number;
+bool playStop = false;
 uint16_t trackNumber = 1;
 uint16_t trackCountInFolder1;
 bool secondFinishCall = false;
@@ -100,7 +102,11 @@ class Mp3Notify {
         }
 
         static void OnPlayFinished([[maybe_unused]] DfMp3 &mp3, [[maybe_unused]] DfMp3_PlaySources source, uint16_t track) {
-            stopPassedTime = millis();
+            // stopPassedTime = millis();
+            if(playStop) {
+                dfmp3.playFolderTrack16(coordinates.currentLine(), audio_number);
+                playStop = false;
+            }
         }
 
         static void OnPlaySourceOnline([[maybe_unused]] DfMp3 &mp3, DfMp3_PlaySources source) {
@@ -295,9 +301,10 @@ void loop() {
                         // stopPassedTime = millis();
 
                         // if going back (passed half of the stops), then audio number resets from the half (i.e. index of the stop minus half), else just stop index
-                        uint8_t audio_number = index_of_shortest[0] > coordinates.getStopsNum()/2 ? index_of_shortest[0] - coordinates.getStopsNum()/2 : index_of_shortest[0];
+                        audio_number = index_of_shortest[0] > coordinates.getStopsNum()/2 ? index_of_shortest[0] - coordinates.getStopsNum()/2 : index_of_shortest[0];
                         audio_number++; // in folder audios start from 1, not 0
-                        dfmp3.playFolderTrack16(coordinates.currentLine(), audio_number);
+                        playStop = true;
+                        dfmp3.playFolderTrack16(1, 100); // play audio that says 'stop...'
                     }
                 }
 
