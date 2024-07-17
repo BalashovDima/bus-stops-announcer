@@ -4,9 +4,9 @@
 #include <Arduino.h>
 
 #define LINES 2
-#define STOPS_MAX 48
-#define LINE0_STOPS_N 48
-#define LINE1_STOPS_N 38
+#define STOPS_MAX 24
+#define LINE0_STOPS_N 24
+#define LINE1_STOPS_N 19
 
 uint8_t lines[LINES] = {8, 5};
 
@@ -36,7 +36,9 @@ const double line0[LINE0_STOPS_N][2] PROGMEM = { // coordinates from start to en
     {51.2562, 33.19881},
     {51.25985, 33.20091},
     {51.26221, 33.20336},
-    // then going back
+};
+
+const double line0_endToStart[LINE0_STOPS_N][2] PROGMEM = {
     {51.21866, 33.14858}, 
     {51.21899, 33.15551}, 
     {51.21953, 33.16655},
@@ -84,7 +86,9 @@ const double line1[LINE1_STOPS_N][2] PROGMEM = { // coordinates from start to en
     {51.22627836240819, 33.2168888148671},
     {51.22149393720388, 33.22012166107407},
     {51.21809750527479, 33.2283861397093},
-    // then going back    
+};
+
+const double line1_endToStart[LINE1_STOPS_N][2] PROGMEM = { 
     {51.24005957106069, 33.1752101278922}, 
     {51.23990021183767, 33.18335474996154}, 
     {51.23340713079708, 33.1841712344273},
@@ -111,12 +115,20 @@ class Coordinates {
     private:
         uint8_t lineIndex = 0;
 
-        double getCoord(uint8_t stopNumber, uint8_t latORlong) {
+        double getCoord(uint8_t stopNumber, uint8_t latORlong, bool startToEnd) {
             switch(lineIndex) {
                 case 0:
-                    return pgm_read_float(&line0[stopNumber][latORlong]);
+                    if(startToEnd) {
+                        return pgm_read_float(&line0[stopNumber][latORlong]);
+                    } else {
+                        return pgm_read_float(&line0_endToStart[stopNumber][latORlong]);
+                    }
                 case 1:
-                    return pgm_read_float(&line1[stopNumber][latORlong]);
+                    if(startToEnd) {
+                        return pgm_read_float(&line1[stopNumber][latORlong]);
+                    } else {
+                        return pgm_read_float(&line1_endToStart[stopNumber][latORlong]);
+                    }
                 case 2:
                     break;
                 case 3:
@@ -145,12 +157,12 @@ class Coordinates {
             return lines[lineIndex];
         }
 
-        double getLat(uint8_t stopNumber) {
-            return getCoord(stopNumber, 0);
+        double getLat(uint8_t stopNumber, bool startToEnd) {
+            return getCoord(stopNumber, 0, startToEnd);
         }
 
-        double getLng(uint8_t stopNumber) {
-            return getCoord(stopNumber, 1);
+        double getLng(uint8_t stopNumber, bool startToEnd) {
+            return getCoord(stopNumber, 1, startToEnd);
         }
 
         uint8_t getStopsNum() {
