@@ -72,6 +72,12 @@ uint64_t stopPassedTime = 0;
 uint64_t GPSInfoORDistanceCheckTimer = 0;
 bool showGPSInfo = true;
 
+bool startToEnd = true;
+uint8_t lastClosestStop = 0;
+uint8_t adjacentToLastClosestStop = 1;
+double lastDistanceToClosestStop = 0;
+double lastDistanceAdjacentToClosestStop = 0;
+
 Coordinates coordinates;
 
 // implement a notification class,
@@ -269,9 +275,10 @@ void loop() {
             if (gps.encode(Serial3.read())) {
                 Serial.println("\nThe distances are: ");
 
+                // calculate distances to stops
                 for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
                     // distances[i] = calculateDistance(51.24017209067963, 33.21328523813368, coordinates.getLat(i), coordinates.getLng(i)); // for testing
-                    distances[i] = calculateDistance(gps.location.lat(), gps.location.lng(), coordinates.getLat(i), coordinates.getLng(i));
+                    distances[i] = calculateDistance(gps.location.lat(), gps.location.lng(), coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd));
 
                     index_of_shortest[i] = i;
 
@@ -294,6 +301,9 @@ void loop() {
                     }
                 }
 
+                determineDirection();
+
+                // if within range of a specific stop and not moving then announce the stop
                 if(distances[0] <= radiusDistanceCheck && gps.speed.kmph() <= 1) {
                     // if(millis() - stopPassedTime >= 10000) {
                     if(lastStop != index_of_shortest[0]) {
@@ -445,6 +455,58 @@ double calculateDistance(double latA, double lonA, double latB, double lonB) {
     double distance = EARTH_RADIUS * c * 1000;
 
     return distance; // in meters
+}
+
+// determine direction of moving (start (first stop) to end (last stop), or end to start)
+void determineDirection() {
+    // get indexes of distances of stop last remembered
+    uint8_t indexLastClosest, indexLastAdjacent;
+    for (uint8_t i; i < coordinates.getStopsNum(); i++) {
+        if (lastClosestStop == index_of_shortest[i]) {
+            indexLastClosest = i;
+        }
+        if (adjacentToLastClosestStop == index_of_shortest[i]) {
+            indexLastAdjacent = i;
+        }
+    }
+
+    // if to close to a stop then skip direciton determination because there might be indeterminacy
+    if(lastDistanceToClosestStop > 20 && lastDistanceAdjacentToClosestStop > 20) { 
+        // lastClosest decreased, adjacent increased,
+        // hence moving towards lastClosest
+        if (lastDistanceToClosestStop - distances[indexLastClosest] >= 2 && distances[indexLastAdjacent] - lastDistanceAdjacentToClosestStop >= 2) {
+            // if lastClosest is higher numbered stop then the bus's moving from start to end
+            if (lastClosestStop > adjacentToLastClosestStop) {
+                startToEnd = true;
+            } else {  // moving towards lastClosest, which is lower number stop, means moving from end to start
+                startToEnd = false;
+            }
+        }
+
+        // lastClosest increased, adjacent decreased,
+        // hence moving away from lastClosest
+        if (distances[indexLastClosest] - lastDistanceToClosestStop >= 2 && lastDistanceAdjacentToClosestStop - distances[indexLastAdjacent] >= 2) {
+            // if lastClosest is higher numbered stop and bus goes away from it then the bus's moving from end to start
+            if (lastClosestStop > adjacentToLastClosestStop) {
+                startToEnd = true;
+            } else {  // moving away from lastClosest, which is lower number stop, means moving from end to start
+                startToEnd = false;
+            }
+        }
+    }
+
+    // record info for the next run
+    lastClosestStop = index_of_shortest[0];
+
+    if(index_of_shortest[0] + 1 == index_of_shortest[1] || index_of_shortest[0] - 1 == index_of_shortest[1]) {
+        adjacentToLastClosestStop = index_of_shortest[1];
+        lastDistanceToClosestStop = distances[0];
+        lastDistanceAdjacentToClosestStop = distances[1];
+    } else if(index_of_shortest[0] + 1 == index_of_shortest[2] || index_of_shortest[0] - 1 == index_of_shortest[2]) {
+        adjacentToLastClosestStop = index_of_shortest[2];
+        lastDistanceToClosestStop = distances[0];
+        lastDistanceAdjacentToClosestStop = distances[2];
+    }
 }
 
 template <typename T>
