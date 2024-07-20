@@ -277,8 +277,8 @@ void loop() {
 
                 // calculate distances to stops
                 for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
-                    // distances[i] = calculateDistance(51.24017209067963, 33.21328523813368, coordinates.getLat(i), coordinates.getLng(i)); // for testing
-                    distances[i] = calculateDistance(gps.location.lat(), gps.location.lng(), coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd));
+                    distances[i] = calculateDistance(51.24017209067963, 33.21328523813368, coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd)); // for testing
+                    // distances[i] = calculateDistance(gps.location.lat(), gps.location.lng(), coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd));
 
                     index_of_shortest[i] = i;
 
@@ -353,11 +353,18 @@ void displayInfo() {
                     display.print(gps.speed.kmph());
                     display.print("km/h");
 
-                    if(distances[0] <= radiusDistanceCheck && gps.speed.kmph() <= 1) {
-                        if (lastStop != index_of_shortest[0]) {
-                            display.setCursor(95, 17);
-                            display.print("!!");
-                        }
+                    // section below doesn't print "!!" because in the main loop when announcing the stop the code updates lastStop
+                    // if(distances[0] <= radiusDistanceCheck && gps.speed.kmph() <= 1) {
+                    //     if (lastStop != index_of_shortest[0]) {
+                    //         display.setCursor(95, 17);
+                    //         display.print("!!");
+                    //     }
+                    // }
+                    display.setCursor(105, 17);
+                    if(startToEnd) {
+                        display.print(">");
+                    } else {
+                        display.print("<");
                     }
                 } else {
                     // print first six 
@@ -365,11 +372,19 @@ void displayInfo() {
                     for(byte i = 0; i < 2; i++) {
                         for (byte j = 0; j < 3; j++) {
                             byte cordNumber = j+(i*3);
+                            if(cordNumber == 5) continue; // don't prit sixth coordinated to leave space for movement direction
                             display.setCursor(i * 64, j * 10);
                             display.print(index_of_shortest[cordNumber]);
                             display.print(")");
                             display.print(distances[cordNumber], 1);
                         }
+                    }
+
+                    display.setCursor(100, 24);
+                    if(startToEnd) {
+                        display.print("->");
+                    } else {
+                        display.print("<-");
                     }
                 }
                 
