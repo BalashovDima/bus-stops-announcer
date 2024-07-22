@@ -5,7 +5,7 @@
 
 #define LINES 2
 #define STOPS_MAX 24
-#define LINE0_STOPS_N 24
+#define LINE0_STOPS_N 25
 #define LINE1_STOPS_N 19
 
 uint8_t lines[LINES] = {8, 5};
@@ -31,7 +31,8 @@ const double line0[LINE0_STOPS_N][2] PROGMEM = { // coordinates from start to en
     {51.247, 33.22023},
     {51.24849, 33.21674},
     {51.24888, 33.21406},
-    {51.25078, 33.21061},
+    {51.251185, 33.209998},
+    {51.25324, 33.20563},
     {51.25522, 33.20128},
     {51.2562, 33.19881},
     {51.25985, 33.20091},
@@ -59,6 +60,7 @@ const double line0_endToStart[LINE0_STOPS_N][2] PROGMEM = {
     {51.24834, 33.2172},
     {51.24877, 33.21384},
     {51.2517, 33.20891},
+    {51.253319, 33.205455},
     {51.25515, 33.2009},
     {51.25626, 33.19826},
     {51.25986, 33.20082},
