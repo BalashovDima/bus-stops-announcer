@@ -58,8 +58,7 @@ DfMp3 dfmp3(Serial2); // instance a DfMp3 object
 bool increaseRadiusDistanceCheck = true;
 uint16_t radiusDistanceCheck = 20;
 uint16_t volume = STARTING_VOLUME;
-uint8_t audio_number;
-bool playStop = false;
+uint8_t audioPlay = 0; // 0 play 'stop...', 1 play stop, 2 play 'next...', 3 play next stop
 uint16_t trackNumber = 1;
 uint16_t trackCountInFolder1;
 bool secondFinishCall = false;
@@ -107,11 +106,40 @@ class Mp3Notify {
             Serial.println(errorCode);
         }
 
+        // from wiki on library's github (important that it gets called twice)
+        // A track has finished playing. There are cases where this will get called more than once for the same track. If you are using a repeating mode or random play, you will receive only one between the tracks and a double when it stops. If you play a single track, you should get called twice, one for the finish of the track, and another for the finish of the command. This is a nuance of the chip.
         static void OnPlayFinished([[maybe_unused]] DfMp3 &mp3, [[maybe_unused]] DfMp3_PlaySources source, uint16_t track) {
             // stopPassedTime = millis();
-            if(playStop) {
-                dfmp3.playFolderTrack16(coordinates.currentLine(), audio_number);
-                playStop = false;
+            if(secondFinishCall) {
+                switch(audioPlay) {
+                    case 1: // play stop name
+                        dfmp3.playFolderTrack16(coordinates.currentLine(), index_of_shortest[0]+1); // +1 because tracks in folder start from 1 (not 0)
+                        audioPlay = 2;
+                        break;
+                    case 2: // play 'next stop...'
+                        if(index_of_shortest[0]+1 == coordinates.getStopsNum() || index_of_shortest[0] == 0) {
+                            dfmp3.playFolderTrack16(1, 102); // play 'last stop'
+                            audioPlay = 0;
+                            break;
+                        }
+                        dfmp3.playFolderTrack16(1, 101);
+                        audioPlay = 3;
+                        break;
+                    case 3:
+                        if(startToEnd) {
+                            dfmp3.playFolderTrack16(coordinates.currentLine(), index_of_shortest[0]+2); // +2 because tracks in folder start from 1 (not 0), i.e. +2 mean the next from current stop
+                        } else {
+                            dfmp3.playFolderTrack16(coordinates.currentLine(), index_of_shortest[0]);
+                        }
+                        audioPlay = 0;
+                        break;
+                    default:
+                        break;
+                }
+
+                secondFinishCall = false;
+            } else {
+                secondFinishCall = true;
             }
         }
 
@@ -277,8 +305,8 @@ void loop() {
 
                 // calculate distances to stops
                 for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
-                    distances[i] = calculateDistance(51.24017209067963, 33.21328523813368, coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd)); // for testing
-                    // distances[i] = calculateDistance(gps.location.lat(), gps.location.lng(), coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd));
+                    // distances[i] = calculateDistance(51.24017209067963, 33.21328523813368, coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd)); // for testing
+                    distances[i] = calculateDistance(gps.location.lat(), gps.location.lng(), coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd));
 
                     index_of_shortest[i] = i;
 
@@ -310,10 +338,7 @@ void loop() {
                         lastStop = index_of_shortest[0];
                         // stopPassedTime = millis();
 
-                        // if going back (passed half of the stops), then audio number resets from the half (i.e. index of the stop minus half), else just stop index
-                        audio_number = index_of_shortest[0] > coordinates.getStopsNum()/2 ? index_of_shortest[0] - coordinates.getStopsNum()/2 : index_of_shortest[0];
-                        audio_number++; // in folder audios start from 1, not 0
-                        playStop = true;
+                        audioPlay = 1;
                         dfmp3.playFolderTrack16(1, 100); // play audio that says 'stop...'
                     }
                 }
