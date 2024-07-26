@@ -1,4 +1,5 @@
 #define DEBUGGING
+// #define USE_OLED_DISPL
 
 #define BUTTON_PIN A9
 #define NUMBER_OF_BUTTONS 3
@@ -25,8 +26,9 @@
 // On an arduino LEONARDO:   2(SDA),  3(SCL), ...
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+#ifdef USE_OLED_DISPL
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
+#endif
 // #define RX_GPS 15 // arduino rx pin for gps (gps's tx)
 // #define TX_GPS 14 // arduino tx pin for gps (gps's rx)
 #define GPSBaud 9600 // Default baud of NEO-6M is 9600
@@ -161,6 +163,8 @@ void setup() {
 
     Serial.begin(115200);
     
+
+    #ifdef USE_OLED_DISPL
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
         Serial.println(F("SSD1306 allocation failed"));
@@ -175,12 +179,15 @@ void setup() {
     display.clearDisplay();
     display.setTextColor(SSD1306_WHITE); // Draw white text
     display.cp437(true);         // Use full 256 char 'Code Page 437' font
+    #endif
 
     #ifdef DEBUGGING
+        #ifdef USE_OLED_DISPL
         display.setTextSize(1);
         display.setCursor(0, 0);
         display.print("initializing DF player...");
         display.display();
+        #endif
         Serial.println("initializing DF player...");
     #endif
 
@@ -201,36 +208,41 @@ void setup() {
 
     // show some info on dfplayer (to let know that it's working)
     #ifdef DEBUGGING
-        Serial.println("done initializing DFPlayer...");
+        #ifdef USE_OLED_DISPL
+
         display.clearDisplay();
         display.setTextSize(1);
         display.setCursor(0, 0);
         display.print("done initializing DFPlayer...");
         display.display();
-        delay(700);
+        delay(500);
 
-        Serial.print("version ");
-        Serial.println(version);
         display.clearDisplay();
         display.setCursor(0, 0);
         display.print("version ");
         display.print(version);
 
-        Serial.print("files total ");
-        Serial.println(total_track_count);
         display.setCursor(0, 8);
         display.print("tracks total: ");
         display.print(total_track_count);
         display.display();
 
-        Serial.print("volume ");
-        Serial.println(volume);
         display.setCursor(0, 16);
         display.print("volume: ");
         display.print(volume);
         display.display();
 
-        delay(700);
+        delay(500);
+        
+        #endif
+
+        Serial.println("done initializing DFPlayer...");
+        Serial.print("version ");
+        Serial.println(version);
+        Serial.print("files total ");
+        Serial.println(total_track_count);
+        Serial.print("volume ");
+        Serial.println(volume);
     #endif
     // uint16_t volume = dfmp3.getVolume();
     
@@ -343,15 +355,20 @@ void loop() {
                     }
                 }
 
+                #ifdef USE_OLED_DISPL
                 displayInfo();
+                #endif
             }
         }
     } else {
+        #ifdef USE_OLED_DISPL
         displayInfo();
+        #endif
     }
 
 }
 
+#ifdef USE_OLED_DISPL
 void displayInfo() {
     display.clearDisplay();
     display.setTextColor(SSD1306_WHITE);
@@ -473,6 +490,7 @@ void displayInfo() {
 
     display.display();
 }
+#endif
 
 double toRadians(double degrees) {
     return degrees * M_PI / 180.0;
