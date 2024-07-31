@@ -67,7 +67,7 @@ bool secondFinishCall = false;
 bool gpsInfoBigText = false;
 bool showDistancesInsteadOfCord = true;
 double distances[STOPS_MAX] = {0};
-uint8_t index_of_shortest[STOPS_MAX];
+uint8_t index_of_shortest[STOPS_MAX]; // array of stop indexes (stop number - 1)
 uint8_t lastStop = 255;
 uint64_t stopPassedTime = 0;
 uint64_t GPSInfoORDistanceCheckTimer = 0;
@@ -76,8 +76,8 @@ bool showGPSInfo = true;
 bool startToEnd = true;
 uint8_t lastClosestStop = 0;
 uint8_t adjacentToLastClosestStop = 1;
-double lastDistanceToClosestStop = 0;
-double lastDistanceAdjacentToClosestStop = 0;
+double lastDistanceToClosestStop = 21;
+double lastDistanceAdjacentToClosestStop = 21;
 
 Coordinates coordinates;
 
@@ -313,7 +313,7 @@ void loop() {
     if(showGPSInfo) {
         while (Serial3.available() > 0) {
             if (gps.encode(Serial3.read())) {
-                Serial.println("\nThe distances are: ");
+                // Serial.println("\nThe distances are: ");
 
                 // calculate distances to stops
                 for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
@@ -322,8 +322,8 @@ void loop() {
 
                     index_of_shortest[i] = i;
 
-                    Serial.print(distances[i]);
-                    Serial.print("  ");
+                    // Serial.print(distances[i]);
+                    // Serial.print("  ");
                 }
 
                 // sort distances and their coordinates from smallest to largest
@@ -339,6 +339,16 @@ void loop() {
                         swap(distances[i], distances[minIndex]);
                         swap(index_of_shortest[i], index_of_shortest[minIndex]);
                     }
+                }
+
+                
+                Serial.println("\nThe 6 shortest distances are: ");
+                for(byte i = 0; i < 6; i++) {
+                    Serial.print(i);
+                    Serial.print(") ");
+                    Serial.print(index_of_shortest[i]);
+                    Serial.print(" - ");
+                    Serial.println(distances[i]);
                 }
 
                 determineDirection();
@@ -519,7 +529,7 @@ double calculateDistance(double latA, double lonA, double latB, double lonB) {
 void determineDirection() {
     // get indexes of distances of stop last remembered
     uint8_t indexLastClosest, indexLastAdjacent;
-    for (uint8_t i; i < coordinates.getStopsNum(); i++) {
+    for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
         if (lastClosestStop == index_of_shortest[i]) {
             indexLastClosest = i;
         }
@@ -528,43 +538,106 @@ void determineDirection() {
         }
     }
 
+    #ifdef DEBUGGING
+    Serial.print("\nlastClosestStop: ");
+    Serial.print(lastClosestStop);
+    Serial.print("  index: ");
+    Serial.println(indexLastClosest);
+    Serial.print("adjacentToLastClosestStop: ");
+    Serial.print(adjacentToLastClosestStop);
+    Serial.print("  index: ");
+    Serial.println(indexLastAdjacent);
+    
+    Serial.println("\n              prev        now");
+    Serial.print("closest      ");
+    Serial.print(lastDistanceToClosestStop);
+    Serial.print("      ");
+    Serial.println(distances[indexLastClosest]);
+    Serial.print("adjacent     ");
+    Serial.print(lastDistanceAdjacentToClosestStop);
+    Serial.print("      ");
+    Serial.println(distances[indexLastAdjacent]);
+    #endif
+
     // if to close to a stop then skip direciton determination because there might be indeterminacy
     if(lastDistanceToClosestStop > 20 && lastDistanceAdjacentToClosestStop > 20) { 
-        // lastClosest decreased, adjacent increased,
-        // hence moving towards lastClosest
-        if (lastDistanceToClosestStop - distances[indexLastClosest] >= 2 && distances[indexLastAdjacent] - lastDistanceAdjacentToClosestStop >= 2) {
+        
+        #ifdef DEBUGGING
+        Serial.print("\nlastDistanceToClosestStop - distances[indexLastClosest] : ");
+        Serial.println(lastDistanceToClosestStop - distances[indexLastClosest]);
+        Serial.print("distances[indexLastAdjacent] - lastDistanceAdjacentToClosestStop : ");
+        Serial.println(distances[indexLastAdjacent] - lastDistanceAdjacentToClosestStop);
+        
+        Serial.print("distances[indexLastClosest] - lastDistanceToClosestStop : ");
+        Serial.println(distances[indexLastClosest] - lastDistanceToClosestStop);
+        Serial.print("lastDistanceAdjacentToClosestStop - distances[indexLastAdjacent] : ");
+        Serial.println(lastDistanceAdjacentToClosestStop - distances[indexLastAdjacent]);
+        #endif
+        
+        if(lastDistanceToClosestStop - distances[indexLastClosest] >= 2 && distances[indexLastAdjacent] - lastDistanceAdjacentToClosestStop >= 2) {
+            // lastClosest decreased, adjacent increased,
+            // hence moving towards lastClosest
+            Serial.println("\nlastClosest decreased, adjacent increased | moving towards lastClosest");
+            
             // if lastClosest is higher numbered stop then the bus's moving from start to end
             if (lastClosestStop > adjacentToLastClosestStop) {
                 startToEnd = true;
             } else {  // moving towards lastClosest, which is lower number stop, means moving from end to start
                 startToEnd = false;
             }
-        }
-
-        // lastClosest increased, adjacent decreased,
-        // hence moving away from lastClosest
-        if (distances[indexLastClosest] - lastDistanceToClosestStop >= 2 && lastDistanceAdjacentToClosestStop - distances[indexLastAdjacent] >= 2) {
+            
+        } else if(distances[indexLastClosest] - lastDistanceToClosestStop >= 2 && lastDistanceAdjacentToClosestStop - distances[indexLastAdjacent] >= 2) {
+            // lastClosest increased, adjacent decreased,
+            // hence moving away from lastClosest
+            Serial.println("\nlastClosest increased, adjacent decreased | moving away from lastClosest");
             // if lastClosest is higher numbered stop and bus goes away from it then the bus's moving from end to start
             if (lastClosestStop > adjacentToLastClosestStop) {
-                startToEnd = true;
-            } else {  // moving away from lastClosest, which is lower number stop, means moving from end to start
                 startToEnd = false;
+            } else {  // moving away from lastClosest, which is lower number stop, means moving from end to start
+                startToEnd = true;
+            }
+        } else if(distances[indexLastClosest] - lastDistanceToClosestStop >= 2 && distances[indexLastAdjacent] - lastDistanceAdjacentToClosestStop >= 2) {
+            // lastClosest increased, adjacent increased,
+            // hence moving away from lastClosest and away from adjacentToLastClosest
+            Serial.println("\nlastClosest increased, adjacent increased | moving away from lastClosest and away from adjacentToLastClosest");
+            if (lastClosestStop > adjacentToLastClosestStop) {
+                startToEnd = false;
+            } else { 
+                startToEnd = true;
+            }
+        } else if(lastDistanceToClosestStop - distances[indexLastClosest] >= 2 && lastDistanceAdjacentToClosestStop - distances[indexLastAdjacent] >= 2) {
+            // lastClosest decreased, adjacent decreased,
+            // hence moving towards lastClosest and towards adjacentToLastClosest
+            Serial.println("\nlastClosest decreased, adjacent decreased | moving towards lastClosest and towards adjacentToLastClosest");
+            if (lastClosestStop > adjacentToLastClosestStop) {
+                startToEnd = false;
+            } else {  
+                startToEnd = true;
             }
         }
     }
 
     // record info for the next run
     lastClosestStop = index_of_shortest[0];
+    lastDistanceToClosestStop = distances[0];
 
     if(index_of_shortest[0] + 1 == index_of_shortest[1] || index_of_shortest[0] - 1 == index_of_shortest[1]) {
         adjacentToLastClosestStop = index_of_shortest[1];
-        lastDistanceToClosestStop = distances[0];
         lastDistanceAdjacentToClosestStop = distances[1];
     } else if(index_of_shortest[0] + 1 == index_of_shortest[2] || index_of_shortest[0] - 1 == index_of_shortest[2]) {
         adjacentToLastClosestStop = index_of_shortest[2];
-        lastDistanceToClosestStop = distances[0];
         lastDistanceAdjacentToClosestStop = distances[2];
     }
+
+    #ifdef DEBUGGING
+    Serial.print("\n start to end: ");
+    if(startToEnd) {
+        Serial.println("true");
+    } else {
+        Serial.println("false");
+    }
+    Serial.println("--------------------------------------------------------");
+    #endif
 }
 
 template <typename T>
