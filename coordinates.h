@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 #define LINES 2
-#define STOPS_MAX 24
+#define STOPS_MAX 25
 #define LINE0_STOPS_N 25
 #define LINE1_STOPS_N 19
 
