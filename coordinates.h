@@ -2,6 +2,7 @@
 #define COORDINATES_H
 
 #include <Arduino.h>
+#include <EEPROM.h>
 
 #define LINES 5
 #define STOPS_MAX 28
@@ -389,6 +390,12 @@ class Coordinates {
         }
 
     public:
+        Coordinates() {
+            if(EEPROM.read(0) != 255) {
+                setLineNumber(EEPROM.read(0));
+            }
+        }
+    
         void setLineNumber(uint8_t number) {
             for(uint8_t i = 0; i < LINES; i++) {
                 if(lines[i] == number) {
@@ -403,6 +410,10 @@ class Coordinates {
 
         void prevLine() {
             lineIndex == 0 ? lineIndex = LINES-1 : lineIndex--;
+        }
+
+        void rememberLine() {
+            EEPROM.update(0, currentLine());
         }
 
         uint8_t currentLine() {

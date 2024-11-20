@@ -69,7 +69,8 @@ bool showDistancesInsteadOfCord = true;
 double distances[STOPS_MAX] = {0};
 uint8_t index_of_shortest[STOPS_MAX]; // array of stop indexes (stop number - 1)
 uint8_t lastStop = 255;
-uint64_t stopPassedTime = 0;
+uint64_t lineChangedTime = 0;
+bool checkLineSave = false;
 uint64_t GPSInfoORDistanceCheckTimer = 0;
 bool showGPSInfo = true;
 
@@ -261,12 +262,23 @@ void loop() {
 
     dfmp3.loop();
 
+    if(checkLineSave) {
+        if(millis() - lineChangedTime > 20000) { // remember (write to EEPROM) what line was chosen if it hasn't been changed for 20 seconds
+            coordinates.rememberLine();
+            checkLineSave = false;
+        }
+    }
+
     if(btn_1.hasClicks(1)) {
         coordinates.prevLine();
+        checkLineSave = true;
+        lineChangedTime = millis();
         showNumber(coordinates.currentLine());
     }
     if(btn_3.hasClicks(1)) {
         coordinates.nextLine();
+        checkLineSave = true;
+        lineChangedTime = millis();
         showNumber(coordinates.currentLine());
     }
 
