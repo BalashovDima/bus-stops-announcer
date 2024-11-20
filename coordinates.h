@@ -3,15 +3,137 @@
 
 #include <Arduino.h>
 
-#define LINES 2
-#define STOPS_MAX 25
-#define LINE0_STOPS_N 25
-#define LINE1_STOPS_N 19
+#define LINES 5
+#define STOPS_MAX 28
+#define LINE1_STOPS_N 26
+#define LINE3_STOPS_N 26
+#define LINE5_STOPS_N 19 // not used, coords in this file might be wrong (not checked irl)
+#define LINE8_STOPS_N 25
+#define LINE14_STOPS_N 28
+#define LINE16_STOPS_N 23
 
-uint8_t lines[LINES] = {8, 5};
+uint8_t lines[LINES] = {1, 3, 8, 14, 16};
 
-const double line0[LINE0_STOPS_N][2] PROGMEM = { // coordinates from start to end for bus line 8 in konotop
-    // 24 stops
+const double line1[LINE1_STOPS_N][2] PROGMEM = { // coordinates from start to end for bus line 1 in konotop
+    // 26 stops
+    {51.23987, 33.16893}, 
+    {51.23992, 33.17195}, 
+    {51.24002, 33.17508}, 
+    {51.23962, 33.18338}, 
+    {51.23526, 33.18396}, 
+    {51.23304, 33.18423}, 
+    {51.22878, 33.18551},
+    {51.22535, 33.18654},
+    {51.22541, 33.19345},
+    {51.22767, 33.19621},
+    {51.23117, 33.20054},
+    {51.23325, 33.20302},
+    {51.23549, 33.20574},
+    {51.23903, 33.21025},
+    {51.24014, 33.21327},
+    {51.24097, 33.21911},
+    {51.24525, 33.21983},
+    {51.24698, 33.22028},
+    {51.24854, 33.21664},
+    {51.24888, 33.21408},
+    {51.25162, 33.20933},
+    {51.25339, 33.20535},
+    {51.25513, 33.20120},
+    {51.25621, 33.19881},
+    {51.26025, 33.18866},
+    {51.26165, 33.18525},
+};
+
+const double line1_endToStart[LINE1_STOPS_N][2] PROGMEM = { // coordinates from start to end for bus line 1 in konotop
+    {51.23996, 33.16885}, 
+    {51.24004, 33.17181}, 
+    {51.24012, 33.17547}, 
+    {51.24025, 33.18282}, 
+    {51.23400, 33.18438}, 
+    {51.23287, 33.18442}, 
+    {51.22911, 33.18566}, 
+    {51.22477, 33.18795},
+    {51.22561, 33.19355},
+    {51.22708, 33.19527},
+    {51.22984, 33.19863},
+    {51.23308, 33.20262},
+    {51.23564, 33.20563},
+    {51.23821, 33.20886},
+    {51.24016, 33.21254},
+    {51.24110, 33.21894},
+    {51.24598, 33.21988},
+    {51.24766, 33.22008},
+    {51.24830, 33.21714},
+    {51.24847, 33.21411},
+    {51.25178, 33.20885},
+    {51.25363, 33.20467},
+    {51.25520, 33.20084},
+    {51.25629, 33.19819},
+    {51.26024, 33.18844},
+    {51.26179, 33.18476},
+};
+
+const double line3[LINE3_STOPS_N][2] PROGMEM = { // coordinates from start to end for bus line 3 in konotop
+    // 26 stops
+    {51.21340, 33.15883},
+    {51.21357, 33.16199},
+    {51.21378, 33.16606},
+    {51.21438, 33.17034},
+    {51.21953, 33.17169},
+    {51.22024, 33.1789},
+    {51.22069, 33.18794},
+    {51.22123, 33.19210},
+    {51.22531, 33.19343},
+    {51.22763, 33.1963},
+    {51.23116, 33.20053},
+    {51.23327, 33.20304},
+    {51.23549, 33.20579},
+    {51.23879, 33.20991},
+    {51.24014, 33.21327},
+    {51.24014, 33.21327},
+    {51.24097, 33.21911},
+    {51.24525, 33.21983},
+    {51.24698, 33.22028},
+    {51.24888, 33.21406},
+    {51.25078, 33.21061},
+    {51.25339, 33.20535},
+    {51.25522, 33.20128},
+    {51.2562, 33.19881},
+    {51.25985, 33.20091},
+    {51.26221, 33.20336},
+};
+
+const double line3_endToStart[LINE3_STOPS_N][2] PROGMEM = { // coordinates from start to end for bus line 3 in konotop
+    {51.21340, 33.15883}, 
+    {51.21357, 33.16199},
+    {51.21378, 33.16606},
+    {51.21438, 33.17034},
+    {51.21953, 33.17169},
+    {51.22024, 33.1789},
+    {51.22076, 33.18776},
+    {51.22113, 33.19187},
+    {51.22561, 33.19347},
+    {51.22712, 33.19522},
+    {51.22977, 33.19861},
+    {51.23302, 33.20249},
+    {51.23559, 33.20576},
+    {51.23819, 33.20885},
+    {51.24016, 33.21265},
+    {51.24016, 33.21254},
+    {51.24110, 33.21894},
+    {51.24598, 33.21988},
+    {51.24766, 33.22008},
+    {51.24877, 33.21384},
+    {51.2517, 33.20891},
+    {51.25363, 33.20467},
+    {51.25515, 33.2009},
+    {51.25626, 33.19826},
+    {51.25986, 33.20082},
+    {51.26224, 33.20339},
+};
+
+const double line8[LINE8_STOPS_N][2] PROGMEM = { // coordinates from start to end for bus line 8 in konotop
+    // 25 stops
     {51.21866, 33.14858}, 
     {51.21899, 33.15551}, 
     {51.21953, 33.16655},
@@ -39,7 +161,7 @@ const double line0[LINE0_STOPS_N][2] PROGMEM = { // coordinates from start to en
     {51.26221, 33.20336},
 };
 
-const double line0_endToStart[LINE0_STOPS_N][2] PROGMEM = {
+const double line8_endToStart[LINE8_STOPS_N][2] PROGMEM = {
     {51.21866, 33.14858}, 
     {51.21899, 33.15551}, 
     {51.21953, 33.16655},
@@ -67,7 +189,7 @@ const double line0_endToStart[LINE0_STOPS_N][2] PROGMEM = {
     {51.26224, 33.20339},
 };
 
-const double line1[LINE1_STOPS_N][2] PROGMEM = { // coordinates from start to end for bus line 5 in konotop
+const double line5[LINE5_STOPS_N][2] PROGMEM = { // coordinates from start to end for bus line 5 in konotop
     // 19 stops
     {51.24005957106069, 33.1752101278922}, 
     {51.23990021183767, 33.18335474996154}, 
@@ -90,8 +212,7 @@ const double line1[LINE1_STOPS_N][2] PROGMEM = { // coordinates from start to en
     {51.21809750527479, 33.2283861397093},
 };
 
-const double line1_endToStart[LINE1_STOPS_N][2] PROGMEM = { 
-    {51.24005957106069, 33.1752101278922}, 
+const double line5_endToStart[LINE5_STOPS_N][2] PROGMEM = { 
     {51.23990021183767, 33.18335474996154}, 
     {51.23340713079708, 33.1841712344273},
     {51.22873889362563, 33.18554381709432},
@@ -112,6 +233,121 @@ const double line1_endToStart[LINE1_STOPS_N][2] PROGMEM = {
     {51.21809750527479, 33.2283861397093},
 };
 
+const double line14[LINE14_STOPS_N][2] PROGMEM = { // coordinates from start to end for bus line 8 in konotop
+    // 28 stops
+    {51.24748, 33.17913}, 
+    {51.24628, 33.18290},
+    {51.24283, 33.18314},
+    {51.23962, 33.18338},
+    {51.23526, 33.18396},
+    {51.23304, 33.18423},
+    {51.22878, 33.18551},
+    {51.22535, 33.18654},
+    {51.22541, 33.19345},
+    {51.22767, 33.19621},
+    {51.23117, 33.20054},
+    {51.23325, 33.20302},
+    {51.23549, 33.20574},
+    {51.23903, 33.21025},
+    {51.24014, 33.21327},
+    {51.24097, 33.21911},
+    {51.24525, 33.21983},
+    {51.24698, 33.22028},
+    {51.24854, 33.21664},
+    {51.24888, 33.21408},
+    {51.25162, 33.20933},
+    {51.25339, 33.20535},
+    {51.25513, 33.20120},
+    {51.25621, 33.19881},
+    {51.26025, 33.18866},
+    {51.26165, 33.18525},
+    {51.26807, 33.17339},
+    {51.27767, 33.17847},
+};
+
+const double line14_endToStart[LINE14_STOPS_N][2] PROGMEM = {
+    {51.24748, 33.17913}, 
+    {51.24604, 33.18316},
+    {51.24334, 33.18327},
+    {51.24073, 33.18324},
+    {51.23400, 33.18438},
+    {51.23287, 33.18442},
+    {51.22911, 33.18566},
+    {51.22477, 33.18795},
+    {51.22561, 33.19355},
+    {51.22708, 33.19527},
+    {51.22984, 33.19863},
+    {51.23308, 33.20262},
+    {51.23564, 33.20563},
+    {51.23821, 33.20886},
+    {51.24016, 33.21254},
+    {51.24110, 33.21894},
+    {51.24598, 33.21988},
+    {51.24766, 33.22008},
+    {51.24830, 33.21714},
+    {51.24847, 33.21411},
+    {51.25178, 33.20885},
+    {51.25363, 33.20467},
+    {51.25520, 33.20084},
+    {51.25629, 33.19819},
+    {51.26024, 33.18844},
+    {51.26179, 33.18476},
+    {51.26807, 33.17339},
+    {51.27767, 33.17819},
+};
+
+const double line16[LINE16_STOPS_N][2] PROGMEM { // coordinates from start to end for bus line 16 in konotop
+    // 23 stops
+    {51.22456, 33.15478}, 
+    {51.22414, 33.16776},
+    {51.22517, 33.17347},
+    {51.22508, 33.17883},
+    {51.22509, 33.18488},
+    {51.22541, 33.19345},
+    {51.22767, 33.19621},
+    {51.23117, 33.20054},
+    {51.23325, 33.20302},
+    {51.23549, 33.20574},
+    {51.23903, 33.21025},
+    {51.24014, 33.21327},
+    {51.24097, 33.21911},
+    {51.24525, 33.21983},
+    {51.24698, 33.22028},
+    {51.24854, 33.21664},
+    {51.24888, 33.21408},
+    {51.25162, 33.20933},
+    {51.25339, 33.20535},
+    {51.25513, 33.20120},
+    {51.25621, 33.19881},
+    {51.26002, 33.20078},
+    {51.25983, 33.20520},
+};
+
+const double line16_endToStart[LINE16_STOPS_N][2] PROGMEM = {
+    {51.22456, 33.15478}, 
+    {51.22400, 33.16787},
+    {51.22519, 33.17382},
+    {51.22506, 33.17905},
+    {51.22477, 33.18795},
+    {51.22561, 33.19355},
+    {51.22708, 33.19527},
+    {51.22984, 33.19863},
+    {51.23308, 33.20262},
+    {51.23564, 33.20563},
+    {51.23821, 33.20886},
+    {51.24016, 33.21254},
+    {51.24110, 33.21894},
+    {51.24598, 33.21988},
+    {51.24766, 33.22008},
+    {51.24830, 33.21714},
+    {51.24850, 33.21413},
+    {51.25178, 33.20885},
+    {51.25363, 33.20467},
+    {51.25520, 33.20084},
+    {51.25629, 33.19819},
+    {51.26007, 33.20079},
+    {51.25969, 33.20534},
+};
 
 class Coordinates {
     private:
@@ -121,20 +357,34 @@ class Coordinates {
             switch(lineIndex) {
                 case 0:
                     if(startToEnd) {
-                        return pgm_read_float(&line0[stopNumber][latORlong]);
-                    } else {
-                        return pgm_read_float(&line0_endToStart[stopNumber][latORlong]);
-                    }
-                case 1:
-                    if(startToEnd) {
                         return pgm_read_float(&line1[stopNumber][latORlong]);
                     } else {
                         return pgm_read_float(&line1_endToStart[stopNumber][latORlong]);
                     }
+                case 1:
+                    if(startToEnd) {
+                        return pgm_read_float(&line3[stopNumber][latORlong]);
+                    } else {
+                        return pgm_read_float(&line3_endToStart[stopNumber][latORlong]);
+                    }
                 case 2:
-                    break;
+                    if(startToEnd) {
+                        return pgm_read_float(&line8[stopNumber][latORlong]);
+                    } else {
+                        return pgm_read_float(&line8_endToStart[stopNumber][latORlong]);
+                    }
                 case 3:
-                    break;
+                    if(startToEnd) {
+                        return pgm_read_float(&line14[stopNumber][latORlong]);
+                    } else {
+                        return pgm_read_float(&line14_endToStart[stopNumber][latORlong]);
+                    }
+                case 4:
+                    if(startToEnd) {
+                        return pgm_read_float(&line16[stopNumber][latORlong]);
+                    } else {
+                        return pgm_read_float(&line16_endToStart[stopNumber][latORlong]);
+                    }
             }
         }
 
@@ -170,9 +420,19 @@ class Coordinates {
         uint8_t getStopsNum() {
             switch(lineIndex) {
                 case 0:
-                    return LINE0_STOPS_N;
-                case 1:
                     return LINE1_STOPS_N;
+                    
+                case 1:
+                    return LINE3_STOPS_N;
+                    
+                case 2:
+                    return LINE8_STOPS_N;
+                    
+                case 3:
+                    return LINE14_STOPS_N;
+                    
+                case 4:
+                    return LINE16_STOPS_N;
             }
         }
 
