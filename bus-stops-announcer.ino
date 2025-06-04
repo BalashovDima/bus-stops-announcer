@@ -66,13 +66,14 @@ uint16_t trackCountInFolder1;
 bool secondFinishCall = false;
 bool gpsInfoBigText = false;
 bool showDistancesInsteadOfCord = true;
-double distances[STOPS_MAX] = {0};
+float distances[STOPS_MAX] = {0};
 uint8_t index_of_shortest[STOPS_MAX]; // array of stop indexes (stop number - 1)
 uint8_t lastStop = 255;
 uint64_t lineChangedTime = 0;
 bool checkLineSave = false;
 uint64_t GPSInfoORDistanceCheckTimer = 0;
 bool showGPSInfo = true;
+uint8_t nextStopIndex = 0;
 
 bool startToEnd = true;
 double lastLat = 0;
@@ -114,24 +115,48 @@ class Mp3Notify {
             if(secondFinishCall) {
                 switch(audioPlay) {
                     case 1: // play stop name
-                        dfmp3.playFolderTrack16(coordinates.currentLine(), index_of_shortest[0]+1); // +1 because tracks in folder start from 1 (not 0)
+                        dfmp3.playFolderTrack16(2, coordinates.getStopAudio(index_of_shortest[0], startToEnd)); 
                         audioPlay = 2;
                         break;
-                    case 2: // play 'next stop...'
+                    case 2: // play 'next stop...' or 'last stop' if its the last stop
                         if(index_of_shortest[0]+1 == coordinates.getStopsNum() || index_of_shortest[0] == 0) {
-                            dfmp3.playFolderTrack16(1, 102); // play 'last stop'
+                            dfmp3.playFolderTrack16(1, 3); // play 'last stop'
                             audioPlay = 0;
-                            break;
+                            secondFinishCall = false;
+                            return;
+                        } else { // look for next stop. there might be cases where 'empty stop(s)' is(are) present, so code below handles it 
+                            uint8_t increment = 0;
+                            if(startToEnd) {
+                                while(true) {
+                                    increment++;
+                                    nextStopIndex = index_of_shortest[0]+increment;
+                                    if(coordinates.getStopAudio(nextStopIndex, startToEnd) != 0) break;
+                                    else if(nextStopIndex +1 == coordinates.getStopsNum()) {
+                                        dfmp3.playFolderTrack16(1, 3); // play 'last stop'
+                                        audioPlay = 0;
+                                        secondFinishCall = false;
+                                        return;
+                                    }
+                                }
+                            } else {
+                                while(true) {
+                                    increment++;
+                                    nextStopIndex = index_of_shortest[0]-increment;
+                                    if(coordinates.getStopAudio(nextStopIndex, startToEnd) != 0) break;
+                                    else if(nextStopIndex == 0) {
+                                        dfmp3.playFolderTrack16(1, 3); // play 'last stop'
+                                        audioPlay = 0;
+                                        secondFinishCall = false;
+                                        return;
+                                    }
+                                }
+                            }
                         }
-                        dfmp3.playFolderTrack16(1, 101);
+                        dfmp3.playFolderTrack16(1, 2); // audio saying 'next stop'
                         audioPlay = 3;
                         break;
                     case 3:
-                        if(startToEnd) {
-                            dfmp3.playFolderTrack16(coordinates.currentLine(), index_of_shortest[0]+2); // +2 because tracks in folder start from 1 (not 0), i.e. +2 mean the next from current stop
-                        } else {
-                            dfmp3.playFolderTrack16(coordinates.currentLine(), index_of_shortest[0]);
-                        }
+                        dfmp3.playFolderTrack16(2, coordinates.getStopAudio(nextStopIndex, startToEnd));
                         audioPlay = 0;
                         break;
                     default:
@@ -252,7 +277,7 @@ void setup() {
     pinMode(RESET_PIN, OUTPUT);
     pinMode(CLOCK_PIN, OUTPUT);
     resetNumber();
-    showNumber(coordinates.currentLine());
+    showNumber(coordinates.currentRouteDispNum());
 }
 
 void loop() {
@@ -263,23 +288,31 @@ void loop() {
     dfmp3.loop();
 
     if(checkLineSave) {
-        if(millis() - lineChangedTime > 20000) { // remember (write to EEPROM) what line was chosen if it hasn't been changed for 20 seconds
-            coordinates.rememberLine();
+        if(millis() - lineChangedTime > 20000) { // remember (write to EEPROM) what route was chosen if it hasn't been changed for 20 seconds
+            coordinates.rememberRoute();
             checkLineSave = false;
         }
     }
 
     if(btn_1.hasClicks(1)) {
+        for (int i = 0; i < STOPS_MAX; ++i) {
+            distances[i] = 9999;
+        }
+        
         coordinates.prevLine();
         checkLineSave = true;
         lineChangedTime = millis();
-        showNumber(coordinates.currentLine());
+        showNumber(coordinates.currentRouteDispNum());
     }
     if(btn_3.hasClicks(1)) {
+        for (int i = 0; i < STOPS_MAX; ++i) {
+            distances[i] = 9999;
+        }
+        
         coordinates.nextLine();
         checkLineSave = true;
         lineChangedTime = millis();
-        showNumber(coordinates.currentLine());
+        showNumber(coordinates.currentRouteDispNum());
     }
 
     if(btn_2.hasClicks(3)) {
@@ -296,28 +329,6 @@ void loop() {
         } else {
             showDistancesInsteadOfCord = true;
         }
-    }
-
-    if(btn_2.step()) {
-        Serial.println("button step");
-        if(increaseRadiusDistanceCheck) {
-            if(radiusDistanceCheck < 30) {
-                radiusDistanceCheck++;
-                showGPSInfo = false;
-                GPSInfoORDistanceCheckTimer = millis();
-            }
-        } else {
-            if(radiusDistanceCheck > 1) {
-                radiusDistanceCheck--;
-                showGPSInfo = false;
-                GPSInfoORDistanceCheckTimer = millis();
-            }
-        }
-    }
-
-    if(btn_2.releaseStep()) {
-        Serial.println("button release step");
-        increaseRadiusDistanceCheck = !increaseRadiusDistanceCheck;
     }
 
     if(showGPSInfo) {
@@ -357,19 +368,19 @@ void loop() {
                 }
                 #endif
 
-                determineDirection();
-
                 // if within range of a specific stop and not moving then announce the stop
-                if(distances[0] <= radiusDistanceCheck && gps.speed.kmph() <= 1) {
+                if(distances[0] <= coordinates.getStopRadius(index_of_shortest[0], startToEnd) && gps.speed.kmph() <= 1) {
                     // if(millis() - stopPassedTime >= 10000) {
                     if(lastStop != index_of_shortest[0]) {
                         lastStop = index_of_shortest[0];
                         // stopPassedTime = millis();
 
                         audioPlay = 1;
-                        dfmp3.playFolderTrack16(1, 100); // play audio that says 'stop...'
+                        dfmp3.playFolderTrack16(1, 1); // play audio that says 'stop...'
                     }
                 }
+                
+                determineDirection();
 
                 #ifdef USE_OLED_DISPL
                 displayInfo();
