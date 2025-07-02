@@ -1,8 +1,8 @@
 #ifndef DISPLAY_7_SEGMENT_H
 #define DISPLAY_7_SEGMENT_H
 
-#define CLOCK_PIN 11
-#define RESET_PIN 10
+#define CLOCK_PIN 5
+#define RESET_PIN 7
 
 void resetNumber();
 void showNumber(int n);

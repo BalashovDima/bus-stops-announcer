@@ -37,7 +37,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 TinyGPSPlus gps;
 #define EARTH_RADIUS 6371  // Earth's radius in kilometers
 
-int16_t sigs[NUMBER_OF_BUTTONS] = {413, 122, 0}; // array of signal value of buttons
+int16_t sigs[NUMBER_OF_BUTTONS] = {480, 130, 0}; // array of signal value of buttons
 AnalogKey<BUTTON_PIN, NUMBER_OF_BUTTONS, sigs> keys; // pin of button, number of buttons, array of signal
 // Button btn(BUTTON_PIN);
 VirtButton btn_1;
@@ -49,7 +49,7 @@ VirtButton btn_3;
 class Mp3Notify; // forward declare the notify class, just the name
 
 typedef DFMiniMp3<HardwareSerial, Mp3Notify> DfMp3; // define a handy type using serial and our notify class
-DfMp3 dfmp3(Serial2); // instance a DfMp3 object
+DfMp3 dfmp3(Serial3); // instance a DfMp3 object
 
 // Some arduino boards only have one hardware serial port, so a software serial port is needed instead.
 // comment out the above definitions and use these
@@ -183,10 +183,10 @@ class Mp3Notify {
 };
 
 void setup() {
-    keys.setWindow(50);
+    keys.setWindow(120);
 
     Serial.begin(115200);
-    
+
 
     #ifdef USE_OLED_DISPL
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
@@ -272,12 +272,27 @@ void setup() {
     
 
     // Start the software serial port at the GPS's default baud
-    Serial3.begin(GPSBaud);
+    Serial2.begin(GPSBaud);
 
     pinMode(RESET_PIN, OUTPUT);
     pinMode(CLOCK_PIN, OUTPUT);
     resetNumber();
     showNumber(coordinates.currentRouteDispNum());
+
+    #ifdef DEBUGGING
+        #ifdef USE_OLED_DISPL
+
+        display.clearDisplay();
+        display.setTextSize(2);
+        display.setCursor(0, 0);
+        display.print("Setup Complete");
+        display.display();
+        delay(500);
+
+        #endif
+
+        Serial.println("-------------- Setup Complete --------------");
+    #endif
 }
 
 void loop() {
@@ -332,11 +347,11 @@ void loop() {
     }
 
     if(showGPSInfo) {
-        while (Serial3.available() > 0) {
-            if (gps.encode(Serial3.read())) {
+        while (Serial2.available() > 0) {
+            if (gps.encode(Serial2.read())) {
                 // calculate distances to stops
                 for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
-                    // distances[i] = calculateDistance(51.24017209067963, 33.21328523813368, coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd)); // for testing
+                    // distances[i] = calculateDistance(51.22541, 33.19345, coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd)); // for testing
                     distances[i] = calculateDistance(gps.location.lat(), gps.location.lng(), coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd));
 
                     index_of_shortest[i] = i;
