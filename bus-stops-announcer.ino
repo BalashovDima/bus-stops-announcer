@@ -44,6 +44,12 @@ VirtButton btn_1;
 VirtButton btn_2;
 VirtButton btn_3;
 
+enum AudioPlayState : uint8_t {
+    AUDIO_NONE = 0,
+    AUDIO_STOP = 1,
+    AUDIO_NEXT = 2,
+    AUDIO_NEXT_STOP = 3
+};
 
 #define STARTING_VOLUME 20
 class Mp3Notify; // forward declare the notify class, just the name
@@ -114,14 +120,14 @@ class Mp3Notify {
             // stopPassedTime = millis();
             if(secondFinishCall) {
                 switch(audioPlay) {
-                    case 1: // play stop name
+                    case AUDIO_STOP: // play stop name
                         dfmp3.playFolderTrack16(2, coordinates.getStopAudio(index_of_shortest[0], startToEnd)); 
-                        audioPlay = 2;
+                        audioPlay = AUDIO_NEXT;
                         break;
-                    case 2: // play 'next stop...' or 'last stop' if its the last stop
+                    case AUDIO_NEXT: // play 'next stop...' or 'last stop' if its the last stop
                         if(index_of_shortest[0]+1 == coordinates.getStopsNum() || index_of_shortest[0] == 0) {
                             dfmp3.playFolderTrack16(1, 3); // play 'last stop'
-                            audioPlay = 0;
+                            audioPlay = AUDIO_NONE;
                             secondFinishCall = false;
                             return;
                         } else { // look for next stop. there might be cases where 'empty stop(s)' is(are) present, so code below handles it 
@@ -133,7 +139,7 @@ class Mp3Notify {
                                     if(coordinates.getStopAudio(nextStopIndex, startToEnd) != 0) break;
                                     else if(nextStopIndex +1 == coordinates.getStopsNum()) {
                                         dfmp3.playFolderTrack16(1, 3); // play 'last stop'
-                                        audioPlay = 0;
+                                        audioPlay = AUDIO_NONE;
                                         secondFinishCall = false;
                                         return;
                                     }
@@ -145,7 +151,7 @@ class Mp3Notify {
                                     if(coordinates.getStopAudio(nextStopIndex, startToEnd) != 0) break;
                                     else if(nextStopIndex == 0) {
                                         dfmp3.playFolderTrack16(1, 3); // play 'last stop'
-                                        audioPlay = 0;
+                                        audioPlay = AUDIO_NONE;
                                         secondFinishCall = false;
                                         return;
                                     }
@@ -153,11 +159,11 @@ class Mp3Notify {
                             }
                         }
                         dfmp3.playFolderTrack16(1, 2); // audio saying 'next stop'
-                        audioPlay = 3;
+                        audioPlay = AUDIO_NEXT_STOP;
                         break;
-                    case 3:
+                    case AUDIO_NEXT_STOP:
                         dfmp3.playFolderTrack16(2, coordinates.getStopAudio(nextStopIndex, startToEnd));
-                        audioPlay = 0;
+                        audioPlay = AUDIO_NONE;
                         break;
                     default:
                         break;
@@ -349,6 +355,13 @@ void loop() {
     if(showGPSInfo) {
         while (Serial2.available() > 0) {
             if (gps.encode(Serial2.read())) {
+                #ifdef DEBUGGING
+                Serial.print("Coordinates: lat ");
+                Serial.print(gps.location.lat());
+                Serial.print(", lng ");
+                Serial.println(gps.location.lng());
+                #endif
+
                 // calculate distances to stops
                 for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
                     // distances[i] = calculateDistance(51.22541, 33.19345, coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd)); // for testing
@@ -390,7 +403,7 @@ void loop() {
                         lastStop = index_of_shortest[0];
                         // stopPassedTime = millis();
 
-                        audioPlay = 1;
+                        audioPlay = AUDIO_STOP;
                         dfmp3.playFolderTrack16(1, 1); // play audio that says 'stop...'
                     }
                 }
