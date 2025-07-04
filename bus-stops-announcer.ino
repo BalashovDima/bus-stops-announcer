@@ -295,6 +295,12 @@ void setup() {
         display.display();
         delay(500);
 
+        display.clearDisplay();
+        display.setTextSize(2);
+        display.setCursor(0, 0);
+        display.print("NO GPS FIX");
+        display.display();
+
         #endif
 
         Serial.println("-------------- Setup Complete --------------");
@@ -352,82 +358,103 @@ void loop() {
         }
     }
 
-    if(showGPSInfo) {
-        while (Serial2.available() > 0) {
-            if (gps.encode(Serial2.read())) {
-                #ifdef DEBUGGING
-                Serial.print("Coordinates: lat ");
-                Serial.print(gps.location.lat());
-                Serial.print(", lng ");
-                Serial.println(gps.location.lng());
-                #endif
-
-                // Optimized: cache GPS location and radians outside the loop to reduce floating point operations
-                float currentLat = gps.location.lat();
-                float currentLng = gps.location.lng();
-                float currentLatRad = toRadians(currentLat);
-                float currentLngRad = toRadians(currentLng);
-
-                for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
-                    float stopLat = coordinates.getLat(i, startToEnd);
-                    float stopLng = coordinates.getLng(i, startToEnd);
-                    float stopLatRad = toRadians(stopLat);
-                    float stopLngRad = toRadians(stopLng);
-                    distances[i] = calculateDistanceWithRads(currentLatRad, currentLngRad, stopLatRad, stopLngRad);
-                    index_of_shortest[i] = i;
-                }
-
-                // sort distances and their coordinates from smallest to largest
-                for (int i = 0; i < coordinates.getStopsNum() - 1; i++) {
-                    int minIndex = i;
-                    for (int j = i + 1; j < coordinates.getStopsNum(); j++) {
-                        if (distances[j] < distances[minIndex]) {
-                            minIndex = j;
-                        }
-                    }
-                    if (minIndex != i) {
-                        // Swap distances and corresponding indexes
-                        swap(distances[i], distances[minIndex]);
-                        swap(index_of_shortest[i], index_of_shortest[minIndex]);
-                    }
-                }
-
-                #ifdef DEBUGGING
-                Serial.println("\nThe 6 shortest distances are: ");
-                for(byte i = 0; i < 6; i++) {
-                    Serial.print(i);
-                    Serial.print(") ");
-                    Serial.print(index_of_shortest[i]);
-                    Serial.print(" - ");
-                    Serial.println(distances[i]);
-                }
-                #endif
-
-                // if within range of a specific stop and not moving then announce the stop
-                if(distances[0] <= coordinates.getStopRadius(index_of_shortest[0], startToEnd) && gps.speed.kmph() <= 1) {
-                    // if(millis() - stopPassedTime >= 10000) {
-                    if(lastStop != index_of_shortest[0]) {
-                        lastStop = index_of_shortest[0];
-                        // stopPassedTime = millis();
-
-                        audioPlay = AUDIO_STOP;
-                        dfmp3.playFolderTrack16(1, 1); // play audio that says 'stop...'
-                    }
-                }
-                
-                determineDirection();
-
-                #ifdef USE_OLED_DISPL
-                displayInfo();
-                #endif
-            }
-        }
-    } else {
+    // Only process one byte from Serial2 per loop iteration for smoother timing
+    if (showGPSInfo && Serial2.available() > 0) {
+        gps.encode(Serial2.read());
+    } else if (!showGPSInfo) {
         #ifdef USE_OLED_DISPL
         displayInfo();
         #endif
     }
 
+    static unsigned long lastFixTime = 0;
+    static bool hadFix = false;
+    if (gps.location.isValid() && gps.location.age() < 1500) {
+        hadFix = true;
+        
+        if (gps.location.isUpdated() && gps.time.value() != lastFixTime) {
+            lastFixTime = gps.time.value();
+            
+            #ifdef DEBUGGING
+            Serial.print("\n\nCoordinates: lat ");
+            Serial.print(gps.location.lat(), 6);
+            Serial.print(", lng ");
+            Serial.println(gps.location.lng(), 6);
+            #endif
+
+            // Optimized: cache GPS location and radians outside the loop to reduce floating point operations
+            float currentLat = gps.location.lat();
+            float currentLng = gps.location.lng();
+            float currentLatRad = toRadians(currentLat);
+            float currentLngRad = toRadians(currentLng);
+
+            for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
+                float stopLat = coordinates.getLat(i, startToEnd);
+                float stopLng = coordinates.getLng(i, startToEnd);
+                float stopLatRad = toRadians(stopLat);
+                float stopLngRad = toRadians(stopLng);
+                distances[i] = calculateDistanceWithRads(currentLatRad, currentLngRad, stopLatRad, stopLngRad);
+                index_of_shortest[i] = i;
+            }
+
+            // sort distances and their coordinates from smallest to largest
+            for (int i = 0; i < coordinates.getStopsNum() - 1; i++) {
+                int minIndex = i;
+                for (int j = i + 1; j < coordinates.getStopsNum(); j++) {
+                    if (distances[j] < distances[minIndex]) {
+                        minIndex = j;
+                    }
+                }
+                if (minIndex != i) {
+                    // Swap distances and corresponding indexes
+                    swap(distances[i], distances[minIndex]);
+                    swap(index_of_shortest[i], index_of_shortest[minIndex]);
+                }
+            }
+
+            #ifdef DEBUGGING
+            Serial.println("The 6 shortest distances are: ");
+            for(byte i = 0; i < 6; i++) {
+                Serial.print(i);
+                Serial.print(") ");
+                Serial.print(index_of_shortest[i]);
+                Serial.print(" - ");
+                Serial.println(distances[i]);
+            }
+            #endif
+
+            // if within range of a specific stop and not moving then announce the stop
+            if(distances[0] <= coordinates.getStopRadius(index_of_shortest[0], startToEnd) && gps.speed.kmph() <= 1) {
+                if(lastStop != index_of_shortest[0]) {
+                    lastStop = index_of_shortest[0];
+                    audioPlay = AUDIO_STOP;
+                    dfmp3.playFolderTrack16(1, 1); // play audio that says 'stop...'
+                }
+            }
+            
+            determineDirection();
+
+            #ifdef USE_OLED_DISPL
+            displayInfo();
+            #endif
+        }
+    } else {
+        if (hadFix) {
+            hadFix = false;
+
+            #ifdef USE_OLED_DISPL
+            display.clearDisplay();
+            display.setTextSize(2);
+            display.setCursor(0, 0);
+            display.print("NO GPS FIX");
+            display.display();
+            #endif
+
+            #ifdef DEBUGGING
+            Serial.println("\n-------------- GPS FIX LOST --------------\n");
+            #endif
+        }
+    }
 }
 
 #ifdef USE_OLED_DISPL
@@ -444,7 +471,7 @@ void displayInfo() {
         //     GPSInfoORDistanceCheckTimer = millis();
         // }
 
-        if (gps.location.isValid()) {
+        if (gps.location.isValid() && gps.location.age() < 1500) {
             if(showDistancesInsteadOfCord) { // show six shortest distances
                 if(distances[0] <= 40) { // if very close to a stop, then show the distance to it and speed with big text size
                     display.setTextSize(2);
@@ -530,8 +557,8 @@ void displayInfo() {
                 display.print("km/h");
             }
         } else {
-            display.setTextSize(1);
-            display.println("Location not available");
+            display.setTextSize(2);
+            display.println("NO GPS FIX");
 
             Serial.println("Location: Not Available");
         }
