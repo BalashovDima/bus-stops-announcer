@@ -80,6 +80,9 @@ bool checkLineSave = false;
 uint64_t GPSInfoORDistanceCheckTimer = 0;
 bool showGPSInfo = true;
 uint8_t nextStopIndex = 0;
+uint8_t afterAudioNumber = 0;
+uint16_t afterAudioDelay = 0;
+uint64_t afterAudioTimer = 0;
 
 bool startToEnd = true;
 float lastLat = 0;
@@ -121,7 +124,7 @@ class Mp3Notify {
             if(secondFinishCall) {
                 switch(audioPlay) {
                     case AUDIO_STOP: // play stop name
-                        dfmp3.playFolderTrack16(2, coordinates.getStopAudio(index_of_shortest[0], startToEnd)); 
+                        dfmp3.playFolderTrack16(3, coordinates.getStopAudio(index_of_shortest[0], startToEnd)); 
                         audioPlay = AUDIO_NEXT;
                         break;
                     case AUDIO_NEXT: // play 'next stop...' or 'last stop' if its the last stop
@@ -162,7 +165,7 @@ class Mp3Notify {
                         audioPlay = AUDIO_NEXT_STOP;
                         break;
                     case AUDIO_NEXT_STOP:
-                        dfmp3.playFolderTrack16(2, coordinates.getStopAudio(nextStopIndex, startToEnd));
+                        dfmp3.playFolderTrack16(3, coordinates.getStopAudio(nextStopIndex, startToEnd));
                         audioPlay = AUDIO_NONE;
                         break;
                     default:
@@ -322,6 +325,7 @@ void loop() {
     }
 
     if(btn_1.hasClicks(1)) {
+        lastStop = 255;
         for (int i = 0; i < STOPS_MAX; ++i) {
             distances[i] = 9999;
         }
@@ -332,6 +336,7 @@ void loop() {
         showNumber(coordinates.currentRouteDispNum());
     }
     if(btn_3.hasClicks(1)) {
+        lastStop = 255;
         for (int i = 0; i < STOPS_MAX; ++i) {
             distances[i] = 9999;
         }
@@ -424,13 +429,28 @@ void loop() {
             #endif
 
             // if within range of a specific stop and not moving then announce the stop
-            if(distances[0] <= coordinates.getStopRadius(index_of_shortest[0], startToEnd) && gps.speed.kmph() <= 1) {
-                if(lastStop != index_of_shortest[0]) {
-                    lastStop = index_of_shortest[0];
-                    audioPlay = AUDIO_STOP;
-                    dfmp3.playFolderTrack16(1, 1); // play audio that says 'stop...'
+            if(gps.speed.kmph() <= 2) {
+                if(distances[0] <= coordinates.getStopRadius(index_of_shortest[0], startToEnd)) {
+                    if(lastStop != index_of_shortest[0]) {
+                        lastStop = index_of_shortest[0];
+                        audioPlay = AUDIO_STOP;
+
+                        afterAudioNumber = coordinates.getRouteStopAfterAudioNumber(index_of_shortest[0], startToEnd);
+                        afterAudioDelay = coordinates.getRouteStopAfterAudioDelay(index_of_shortest[0], startToEnd);
+
+                        dfmp3.playFolderTrack16(1, 1); // play audio that says 'stop...'
+                    }
                 }
-            }
+            } else if(afterAudioNumber && afterAudioTimer == 0 && gps.speed.kmph() <= 10) {
+                afterAudioTimer = millis();
+            } else if(afterAudioNumber && afterAudioTimer) {
+                if(millis() - afterAudioTimer >= afterAudioDelay * 1000) {
+                    afterAudioDelay = 0;
+                    afterAudioTimer = 0;
+                    dfmp3.playFolderTrack16(2, afterAudioNumber);
+                    afterAudioNumber = 0;
+                }
+            }           
             
             determineDirection();
 
