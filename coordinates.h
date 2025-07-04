@@ -144,7 +144,7 @@ class Coordinates {
         uint8_t currentRouteIndex = 0;
         Route currentRoute;
 
-        double getCoord(uint16_t stopId, uint8_t latORlong) {
+        float getCoord(uint16_t stopId, uint8_t latORlong) {
             Stop temp;
             memcpy_P(&temp, &stops[stopId], sizeof(Stop));
 
@@ -183,7 +183,7 @@ class Coordinates {
             return currentRoute.dispNum;
         }
 
-        double getLat(uint8_t routeStopIndex, bool startToEnd) {
+        float getLat(uint8_t routeStopIndex, bool startToEnd) {
             uint16_t stopId;
             if(startToEnd) {
                 stopId = pgm_read_word(&currentRoute.steStops[routeStopIndex]);  
@@ -194,7 +194,7 @@ class Coordinates {
             return getCoord(stopId, 0);
         }
 
-        double getLng(uint8_t routeStopIndex, bool startToEnd) {
+        float getLng(uint8_t routeStopIndex, bool startToEnd) {
             uint16_t stopId;
             if(startToEnd) {
                 stopId = pgm_read_word(&currentRoute.steStops[routeStopIndex]);  

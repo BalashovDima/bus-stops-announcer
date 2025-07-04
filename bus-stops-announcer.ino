@@ -82,8 +82,8 @@ bool showGPSInfo = true;
 uint8_t nextStopIndex = 0;
 
 bool startToEnd = true;
-double lastLat = 0;
-double lastLng = 0;
+float lastLat = 0;
+float lastLng = 0;
 
 Coordinates coordinates;
 
@@ -362,11 +362,18 @@ void loop() {
                 Serial.println(gps.location.lng());
                 #endif
 
-                // calculate distances to stops
-                for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
-                    // distances[i] = calculateDistance(51.22541, 33.19345, coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd)); // for testing
-                    distances[i] = calculateDistance(gps.location.lat(), gps.location.lng(), coordinates.getLat(i, startToEnd), coordinates.getLng(i, startToEnd));
+                // Optimized: cache GPS location and radians outside the loop to reduce floating point operations
+                float currentLat = gps.location.lat();
+                float currentLng = gps.location.lng();
+                float currentLatRad = toRadians(currentLat);
+                float currentLngRad = toRadians(currentLng);
 
+                for (uint8_t i = 0; i < coordinates.getStopsNum(); i++) {
+                    float stopLat = coordinates.getLat(i, startToEnd);
+                    float stopLng = coordinates.getLng(i, startToEnd);
+                    float stopLatRad = toRadians(stopLat);
+                    float stopLngRad = toRadians(stopLng);
+                    distances[i] = calculateDistanceWithRads(currentLatRad, currentLngRad, stopLatRad, stopLngRad);
                     index_of_shortest[i] = i;
                 }
 
@@ -547,11 +554,11 @@ void displayInfo() {
 }
 #endif
 
-double toRadians(double degrees) {
-    return degrees * M_PI / 180.0;
+float toRadians(float degrees) {
+    return degrees * 0.01745329251; // degrees * M_PI / 180.0;
 }
 
-double calculateDistance(double latA, double lonA, double latB, double lonB) {
+float calculateDistance(float latA, float lonA, float latB, float lonB) {
     // Convert coordinates from degrees to radians
     latA = toRadians(latA);
     lonA = toRadians(lonA);
@@ -559,31 +566,45 @@ double calculateDistance(double latA, double lonA, double latB, double lonB) {
     lonB = toRadians(lonB);
 
     // Calculate differences between latitudes and longitudes
-    double deltaLat = latB - latA;
-    double deltaLon = lonB - lonA;
+    float deltaLat = latB - latA;
+    float deltaLon = lonB - lonA;
 
     // Apply Haversine formula
-    double a = pow(sin(deltaLat / 2), 2) + cos(latA) * cos(latB) * pow(sin(deltaLon / 2), 2);
-    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    double distance = EARTH_RADIUS * c * 1000;
+    float a = pow(sin(deltaLat / 2), 2) + cos(latA) * cos(latB) * pow(sin(deltaLon / 2), 2);
+    float c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    float distance = EARTH_RADIUS * c * 1000;
 
     return distance; // in meters
 }
 
-double calculateBearing(double lat1, double lon1, double lat2, double lon2) {
+// Add a new helper function for distance calculation with radians
+float calculateDistanceWithRads(float latA, float lonA, float latB, float lonB) {
+    // Calculate differences between latitudes and longitudes
+    float deltaLat = latB - latA;
+    float deltaLon = lonB - lonA;
+
+    // Apply Haversine formula
+    float a = pow(sin(deltaLat / 2), 2) + cos(latA) * cos(latB) * pow(sin(deltaLon / 2), 2);
+    float c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    float distance = EARTH_RADIUS * c * 1000;
+
+    return distance; // in meters
+}
+
+float calculateBearing(float lat1, float lon1, float lat2, float lon2) {
     lat1 = toRadians(lat1);
     lon1 = toRadians(lon1);
     lat2 = toRadians(lat2);
     lon2 = toRadians(lon2);
 
-    double dLon = lon2 - lon1;
-    double x = cos(lat2) * sin(dLon);
-    double y = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
-    return atan2(x, y) * (180.0 / M_PI);
+    float dLon = lon2 - lon1;
+    float x = cos(lat2) * sin(dLon);
+    float y = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
+    return atan2(x, y) * 0.01745329251; // atan2(x, y) * (180.0 / M_PI);
 }
 
-double bearingDifference(double bearing1, double bearing2) {
-    double difference = fmod(bearing2 - bearing1 + 360.0, 360.0);
+float bearingDifference(float bearing1, float bearing2) {
+    float difference = fmod(bearing2 - bearing1 + 360.0, 360.0);
     if (difference > 180.0) {
         difference -= 360.0;
     }
@@ -593,7 +614,7 @@ double bearingDifference(double bearing1, double bearing2) {
 // determine direction of moving (start (first stop) to end (last stop), or end to start)
 void determineDirection() {
     if(gps.speed.kmph() > 10) {
-        double movementBearing = calculateBearing(lastLat, lastLng, gps.location.lat(), gps.location.lng());
+        float movementBearing = calculateBearing(lastLat, lastLng, gps.location.lat(), gps.location.lng());
 
         uint8_t stopA = index_of_shortest[0];
         uint8_t stopB;
@@ -603,9 +624,9 @@ void determineDirection() {
             stopB = index_of_shortest[2];
         } else return;
 
-        double stopsBearing = calculateBearing(coordinates.getLat(stopA, startToEnd), coordinates.getLng(stopA, startToEnd), coordinates.getLat(stopB, startToEnd), coordinates.getLng(stopB, startToEnd));
+        float stopsBearing = calculateBearing(coordinates.getLat(stopA, startToEnd), coordinates.getLng(stopA, startToEnd), coordinates.getLat(stopB, startToEnd), coordinates.getLng(stopB, startToEnd));
 
-        double bearingDiff = bearingDifference(movementBearing, stopsBearing);
+        float bearingDiff = bearingDifference(movementBearing, stopsBearing);
         
         #ifdef DEBUGGING
         Serial.print("movement bearing: ");
