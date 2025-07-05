@@ -441,7 +441,7 @@ void loop() {
                         dfmp3.playFolderTrack16(1, 1); // play audio that says 'stop...'
                     }
                 }
-            } else if(afterAudioNumber && afterAudioTimer == 0 && gps.speed.kmph() <= 10) {
+            } else if(afterAudioNumber && afterAudioTimer == 0 && gps.speed.kmph() >= 10) {
                 afterAudioTimer = millis();
             } else if(afterAudioNumber && afterAudioTimer) {
                 if(millis() - afterAudioTimer >= afterAudioDelay * 1000) {
