@@ -453,6 +453,8 @@ void loop() {
             }           
             
             determineDirection();
+            lastLat = currentLat;
+            lastLng = currentLng;
 
             #ifdef USE_OLED_DISPL
             displayInfo();
@@ -647,13 +649,13 @@ float calculateBearing(float lat1, float lon1, float lat2, float lon2) {
     float dLon = lon2 - lon1;
     float x = cos(lat2) * sin(dLon);
     float y = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
-    return atan2(x, y) * 0.01745329251; // atan2(x, y) * (180.0 / M_PI);
+    return atan2(x, y); // Return radians
 }
 
 float bearingDifference(float bearing1, float bearing2) {
-    float difference = fmod(bearing2 - bearing1 + 360.0, 360.0);
-    if (difference > 180.0) {
-        difference -= 360.0;
+    float difference = fmod(bearing2 - bearing1 + 6.28318530718, 6.28318530718); // 6.28318530718 = 2 * M_PI (=360 degrees, full circle)
+    if (difference > M_PI) {
+        difference -= 6.28318530718;
     }
     return difference;
 }
@@ -664,38 +666,36 @@ void determineDirection() {
         float movementBearing = calculateBearing(lastLat, lastLng, gps.location.lat(), gps.location.lng());
 
         uint8_t stopA = index_of_shortest[0];
-        uint8_t stopB;
-        if(index_of_shortest[1] == stopA + 1 || index_of_shortest[1] == stopA - 1) {
-            stopB = index_of_shortest[1];
-        } else if(index_of_shortest[2] == stopA + 1 || index_of_shortest[2] == stopA - 1) {
-            stopB = index_of_shortest[2];
-        } else return;
+        uint8_t stopB = 255;
+        for (uint8_t i = 1; i < 3; ++i) {
+            if (index_of_shortest[i] == stopA + 1 || index_of_shortest[i] == stopA - 1) {
+                stopB = index_of_shortest[i];
+                break;
+            }
+        }
+        if (stopB == 255) return;
 
-        float stopsBearing = calculateBearing(coordinates.getLat(stopA, startToEnd), coordinates.getLng(stopA, startToEnd), coordinates.getLat(stopB, startToEnd), coordinates.getLng(stopB, startToEnd));
+        float stopsBearing = calculateBearing(
+            coordinates.getLat(stopA, startToEnd), coordinates.getLng(stopA, startToEnd),
+            coordinates.getLat(stopB, startToEnd), coordinates.getLng(stopB, startToEnd)
+        );
 
         float bearingDiff = bearingDifference(movementBearing, stopsBearing);
-        
+
         #ifdef DEBUGGING
         Serial.print("movement bearing: ");
-        Serial.println(movementBearing);
+        Serial.println(movementBearing * (180.0 / M_PI)); // print in degrees
         Serial.print("stops bearing: ");
-        Serial.println(stopsBearing);
+        Serial.println(stopsBearing * (180.0 / M_PI)); // print in degrees
         Serial.print("bearing difference: ");
-        Serial.println(bearingDiff);
+        Serial.println(bearingDiff * (180.0 / M_PI)); // print in degrees
         #endif
 
-        if (fabs(bearingDiff) < 30.0) { // bearings match in direciton (moving from stopA to stopB)
-            if(stopA < stopB) {
-                startToEnd = true;
-            } else {
-                startToEnd = false;
-            }
-        } else if (fabs(bearingDiff) > 150.0) { // bearing are opposite (moving from stopB to stopA)
-            if(stopA > stopB) {
-                startToEnd = true;
-            } else {
-                startToEnd = false;
-            }
+        // 30 degrees = 0.5236 radians, 150 degrees = 2.61799 radians
+        if (fabs(bearingDiff) < 0.5236) { // bearings match in direction (moving from stopA to stopB)
+            startToEnd = (stopA < stopB); // if index of stopA is less than B's than moving from start to end (2<3 => true; 5<4 => false, i.e. end to start) 
+        } else if (fabs(bearingDiff) > 2.61799) { // bearings are opposite (moving from stopB to stopA)
+            startToEnd = (stopA > stopB);
         } 
 
         #ifdef DEBUGGING
@@ -705,9 +705,6 @@ void determineDirection() {
         Serial.println("------------------------------------\n");
         #endif
     }
-
-    lastLat = gps.location.lat();
-    lastLng = gps.location.lng();
 }
 
 template <typename T>
