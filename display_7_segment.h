@@ -1,8 +1,7 @@
 #ifndef DISPLAY_7_SEGMENT_H
 #define DISPLAY_7_SEGMENT_H
 
-#define CLOCK_PIN 5
-#define RESET_PIN 7
+#include "default_config.h"
 
 void resetNumber();
 void showNumber(int n);

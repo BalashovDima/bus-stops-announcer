@@ -1,8 +1,4 @@
-#define DEBUGGING
-#define USE_OLED_DISPL
-
-#define BUTTON_PIN A9
-#define NUMBER_OF_BUTTONS 3
+#include "default_config.h"
 
 #include <AnalogKey.h>
 #include <EncButton.h>
@@ -16,28 +12,21 @@
 #include "./display_7_segment.h"
 #include "./coordinates.h"
 
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 32 // OLED display height, in pixels
-
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 // The pins for I2C are defined by the Wire-library. 
 // On an arduino UNO:       A4(SDA), A5(SCL)
 // On an arduino MEGA 2560: 20(SDA), 21(SCL)
 // On an arduino LEONARDO:   2(SDA),  3(SCL), ...
-#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 #ifdef USE_OLED_DISPL
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #endif
 // #define RX_GPS 15 // arduino rx pin for gps (gps's tx)
 // #define TX_GPS 14 // arduino tx pin for gps (gps's rx)
-#define GPSBaud 9600 // Default baud of NEO-6M is 9600
 // moved to mega with it's own hardware serial so there is no need for software serial
 // SoftwareSerial Serial3(RX_GPS, TX_GPS); // Create a software serial port called "Serial3"
 TinyGPSPlus gps;
-#define EARTH_RADIUS 6371  // Earth's radius in kilometers
 
-int16_t sigs[NUMBER_OF_BUTTONS] = {480, 130, 0}; // array of signal value of buttons
+int16_t sigs[NUMBER_OF_BUTTONS] = BUTTON_SIGS; // array of signal value of buttons
 AnalogKey<BUTTON_PIN, NUMBER_OF_BUTTONS, sigs> keys; // pin of button, number of buttons, array of signal
 // Button btn(BUTTON_PIN);
 VirtButton btn_1;
@@ -51,7 +40,6 @@ enum AudioPlayState : uint8_t {
     AUDIO_NEXT_STOP = 3
 };
 
-#define STARTING_VOLUME 20
 class Mp3Notify; // forward declare the notify class, just the name
 
 typedef DFMiniMp3<HardwareSerial, Mp3Notify> DfMp3; // define a handy type using serial and our notify class
@@ -192,7 +180,7 @@ class Mp3Notify {
 };
 
 void setup() {
-    keys.setWindow(120);
+    keys.setWindow(KEYS_WINDOW_GAP);
 
     Serial.begin(115200);
 
