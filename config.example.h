@@ -25,4 +25,11 @@
 
 #define STARTING_VOLUME 20
 
+// Special Audio Announcement
+#define SPECIAL_AUDIO_PIN 8
+#define SPECIAL_AUDIO_TRIGGER_HOLD true     // true for hold, false for click
+#define SPECIAL_AUDIO_HOLD_DURATION 500     // hold duration in milliseconds
+#define SPECIAL_AUDIO_FOLDER 1              // folder number
+#define SPECIAL_AUDIO_TRACK 98              // track number
+
 #endif // CONFIG_H

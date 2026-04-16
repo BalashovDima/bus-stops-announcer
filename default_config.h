@@ -71,4 +71,25 @@
 #define STARTING_VOLUME 20
 #endif
 
+// Special Audio Announcement
+#ifndef SPECIAL_AUDIO_PIN
+#define SPECIAL_AUDIO_PIN 8
+#endif
+
+#ifndef SPECIAL_AUDIO_TRIGGER_HOLD
+#define SPECIAL_AUDIO_TRIGGER_HOLD true
+#endif
+
+#ifndef SPECIAL_AUDIO_HOLD_DURATION
+#define SPECIAL_AUDIO_HOLD_DURATION 500
+#endif
+
+#ifndef SPECIAL_AUDIO_FOLDER
+#define SPECIAL_AUDIO_FOLDER 1
+#endif
+
+#ifndef SPECIAL_AUDIO_TRACK
+#define SPECIAL_AUDIO_TRACK 98
+#endif
+
 #endif // DEFAULT_CONFIG_H

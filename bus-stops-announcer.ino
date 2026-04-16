@@ -33,6 +33,9 @@ VirtButton btn_1;
 VirtButton btn_2;
 VirtButton btn_3;
 
+Button btn_special(SPECIAL_AUDIO_PIN);
+bool isSpecialAudioPlaying = false;
+
 enum AudioPlayState : uint8_t {
     AUDIO_NONE = 0,
     AUDIO_STOP = 1,
@@ -110,6 +113,11 @@ class Mp3Notify {
         static void OnPlayFinished([[maybe_unused]] DfMp3 &mp3, [[maybe_unused]] DfMp3_PlaySources source, uint16_t track) {
             // stopPassedTime = millis();
             if(secondFinishCall) {
+                if (isSpecialAudioPlaying) {
+                    isSpecialAudioPlaying = false;
+                    secondFinishCall = false;
+                    return;
+                }
                 switch(audioPlay) {
                     case AUDIO_STOP: // play stop name
                         dfmp3.playFolderTrack16(3, coordinates.getStopAudio(index_of_shortest[0], startToEnd)); 
@@ -181,6 +189,7 @@ class Mp3Notify {
 
 void setup() {
     keys.setWindow(KEYS_WINDOW_GAP);
+    btn_special.setHoldTimeout(SPECIAL_AUDIO_HOLD_DURATION);
 
     Serial.begin(115200);
 
@@ -302,8 +311,28 @@ void loop() {
     btn_1.tick(keys.status(0));
     btn_2.tick(keys.status(1));
     btn_3.tick(keys.status(3));
+    btn_special.tick();
 
     dfmp3.loop();
+
+    if (isSpecialAudioPlaying) {
+        if (btn_special.hasClicks(1)) {
+            dfmp3.stop();
+            isSpecialAudioPlaying = false;
+        }
+    } else {
+        bool triggerSpecial = false;
+        if (SPECIAL_AUDIO_TRIGGER_HOLD) {
+            if (btn_special.isHolded()) triggerSpecial = true;
+        } else {
+            if (btn_special.hasClicks(1)) triggerSpecial = true;
+        }
+
+        if (triggerSpecial) {
+            dfmp3.playFolderTrack16(SPECIAL_AUDIO_FOLDER, SPECIAL_AUDIO_TRACK);
+            isSpecialAudioPlaying = true;
+        }
+    }
 
     if(checkLineSave) {
         if(millis() - lineChangedTime > 20000) { // remember (write to EEPROM) what route was chosen if it hasn't been changed for 20 seconds
