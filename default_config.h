@@ -73,7 +73,7 @@
 
 // Special Audio Announcement
 #ifndef SPECIAL_AUDIO_PIN
-#define SPECIAL_AUDIO_PIN 8
+#define SPECIAL_AUDIO_PIN 50
 #endif
 
 #ifndef SPECIAL_AUDIO_TRIGGER_HOLD
